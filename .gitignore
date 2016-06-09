@@ -1,0 +1,21 @@
+*.py[cod]
+
+# Unit test / coverage reports
+.coverage
+cover
+.tox
+.testrepository
+
+# Packages
+.eggs
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
