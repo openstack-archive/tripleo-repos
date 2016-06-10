@@ -30,7 +30,8 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'os-net-config,os-refresh-config,python-tripleoclient,'
                 'openstack-tripleo-common,openstack-tripleo-heat-templates,'
                 'openstack-tripleo-image-elements,openstack-tripleo,'
-                'openstack-tripleo-puppet-elements,openstack-puppet-modules'
+                'openstack-tripleo-puppet-elements,openstack-puppet-modules,'
+                'dib-utils'
                 )
 
 
