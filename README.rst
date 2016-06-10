@@ -8,6 +8,10 @@ See: https://github.com/openstack-packages/DLRN
 Also ensures yum-plugin-priorities is installed since the dlrn repos
 require that to work sanely.
 
+.. note:: The tool will remove any delorean* repos at the target location
+          to avoid conflicts with older repos.  This means you must specify
+          all of the repos you want to enable in one dlrn-repo call.
+
 Examples
 --------
 Install current master dlrn repo and the deps repo::
