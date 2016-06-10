@@ -23,6 +23,7 @@ import requests
 
 
 TITLE_RE = re.compile('\[(.*)\]')
+PRIORITY_RE = re.compile('priority=\d+')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'os-apply-config,os-cloud-config,os-collect-config,'
@@ -50,9 +51,11 @@ def _parse_args():
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         help='A list of delorean repos. Available repos: '
                              'current, deps, current-tripleo. current-tripleo '
-                             'downloads both the current-tripleo and current '
-                             'repos, but sets the current repo to only be '
-                             'used for TripleO projects')
+                             'downloads the current-tripleo, current, and '
+                             'deps repos, but sets the current repo to only '
+                             'be used for TripleO projects. It also modifies '
+                             'each repo\'s priority so packages are installed '
+                             'from the appropriate location.')
     parser.add_argument('-d', '--distro',
                         default='centos7',
                         help='Target distro. Currently only centos7 is '
@@ -88,9 +91,9 @@ def _write_repo(content, target):
 
 
 def _validate_args(args):
-    if 'current' in args.repos and 'current-tripleo' in args.repos:
-        raise InvalidArguments('Cannot use "current" and "current-tripleo" '
-                               'together')
+    if 'current-tripleo' in args.repos and len(args.repos) > 1:
+        raise InvalidArguments('current-tripleo should not be used with any '
+                               'other repos.')
     if args.branch != 'master' and 'current-tripleo' in args.repos:
         raise InvalidArguments('Cannot use current-tripleo on any branch '
                                'except master')
@@ -124,6 +127,14 @@ def _install_priorities():
         raise
 
 
+def _change_priority(content, new_priority):
+    new_content = PRIORITY_RE.sub('priority=%d' % new_priority, content)
+    # This shouldn't happen, but let's be safe.
+    if not PRIORITY_RE.search(new_content):
+        new_content += '\npriority=%d' % new_priority
+    return new_content
+
+
 def _install_repos(args, base_path):
     for repo in args.repos:
         if repo == 'current':
@@ -135,11 +146,18 @@ def _install_repos(args, base_path):
             content = _get_repo(base_path + 'delorean-deps.repo')
             _write_repo(content, args.output_path)
         elif repo == 'current-tripleo':
+            content = _get_repo(base_path + 'delorean-deps.repo')
+            # We need to twiddle priorities since we're mixing multiple repos
+            # that are generated with the same priority.
+            content = _change_priority(content, 30)
+            _write_repo(content, args.output_path)
             content = _get_repo(base_path + 'current-tripleo/delorean.repo')
             content = TITLE_RE.sub('[delorean-current-tripleo]', content)
+            content = _change_priority(content, 20)
             _write_repo(content, args.output_path)
             content = _get_repo(base_path + 'current/delorean.repo')
             content += '\n%s' % INCLUDE_PKGS
+            content = _change_priority(content, 10)
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)

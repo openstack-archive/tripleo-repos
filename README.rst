@@ -18,9 +18,10 @@ Install current master dlrn repo and the deps repo::
 
     dlrn-repo current deps
 
-Install the current-tripleo repo and deps::
+Install the current-tripleo repo.  This will also pull current and deps, and
+will adjust the priorities of each repo appropriately::
 
-    dlrn-repo current-tripleo deps
+    dlrn-repo current-tripleo
 
 Install the mitaka dlrn repo and deps::
 

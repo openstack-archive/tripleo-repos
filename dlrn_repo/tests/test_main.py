@@ -152,11 +152,17 @@ class TestDlrnRepo(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
+        mock_get.assert_any_call('roads/delorean-deps.repo')
+        # This is the wrong name for the deps repo, but I'm not bothered
+        # enough by that to mess with mocking multiple different calls.
+        mock_write.assert_any_call('[delorean]\n'
+                                   'Mr. Fusion\npriority=30', 'test')
         mock_get.assert_any_call('roads/current-tripleo/delorean.repo')
         mock_write.assert_any_call('[delorean-current-tripleo]\n'
-                                   'Mr. Fusion', 'test')
+                                   'Mr. Fusion\npriority=20', 'test')
         mock_get.assert_called_with('roads/current/delorean.repo')
-        mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s' %
+        mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s\n'
+                                      'priority=10' %
                                       main.INCLUDE_PKGS, 'test')
 
     def test_install_repos_invalid(self):
@@ -197,6 +203,14 @@ class TestDlrnRepo(testtools.TestCase):
         self.assertEqual('mitaka', args.branch)
         self.assertEqual('test', args.output_path)
 
+    def test_change_priority(self):
+        result = main._change_priority('[delorean]\npriority=1', 10)
+        self.assertEqual('[delorean]\npriority=10', result)
+
+    def test_change_priority_none(self):
+        result = main._change_priority('[delorean]', 10)
+        self.assertEqual('[delorean]\npriority=10', result)
+
 
 class TestValidate(testtools.TestCase):
     def setUp(self):
@@ -211,6 +225,11 @@ class TestValidate(testtools.TestCase):
 
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    def test_deps_and_tripleo(self):
+        self.args.repos = ['deps', 'current-tripleo']
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
