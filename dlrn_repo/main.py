@@ -42,7 +42,8 @@ def _parse_args():
     parser = argparse.ArgumentParser(
         description='Download and instll dlrn repos. Note that these repos '
                     'require yum-plugin-priorities in order to function '
-                    'correctly, so that will also be installed.')
+                    'correctly, so that will also be installed.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         help='A list of delorean repos. Available repos: '
                              'current, deps, current-tripleo. current-tripleo '
