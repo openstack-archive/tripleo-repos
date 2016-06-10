@@ -28,7 +28,7 @@ PRIORITY_RE = re.compile('priority=\d+')
 INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'os-apply-config,os-cloud-config,os-collect-config,'
                 'os-net-config,os-refresh-config,python-tripleoclient,'
-                'tripleo-common,openstack -tripleo-heat-templates,'
+                'openstack-tripleo-common,openstack-tripleo-heat-templates,'
                 'openstack-tripleo-image-elements,openstack-tripleo,'
                 'openstack-tripleo-puppet-elements,openstack-puppet-modules'
                 )
