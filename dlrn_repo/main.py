@@ -18,9 +18,9 @@ import argparse
 import os
 import re
 import subprocess
-import sys
 
 import requests
+
 
 TITLE_RE = re.compile('\[(.*)\]')
 # Packages to be included from delorean-current when using current-tripleo
@@ -32,11 +32,14 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'openstack-tripleo-puppet-elements,openstack-puppet-modules'
                 )
 
+
 class InvalidArguments(Exception):
     pass
 
+
 class NoRepoTitle(Exception):
     pass
+
 
 def _parse_args():
     parser = argparse.ArgumentParser(
@@ -48,8 +51,8 @@ def _parse_args():
                         help='A list of delorean repos. Available repos: '
                              'current, deps, current-tripleo. current-tripleo '
                              'downloads both the current-tripleo and current '
-                             'repos, but sets the current repo to only be used '
-                             'for TripleO projects')
+                             'repos, but sets the current repo to only be '
+                             'used for TripleO projects')
     parser.add_argument('-d', '--distro',
                         default='centos7',
                         help='Target distro. Currently only centos7 is '
@@ -64,12 +67,14 @@ def _parse_args():
                              'repos.')
     return parser.parse_args()
 
+
 def _get_repo(path):
     r = requests.get(path)
     if r.status_code == 200:
         return r.text
     else:
         r.raise_for_status()
+
 
 def _write_repo(content, target):
     m = TITLE_RE.match(content)
@@ -81,6 +86,7 @@ def _write_repo(content, target):
         f.write(content)
     print('Installed repo %s to %s' % (m.group(1), filename))
 
+
 def _validate_args(args):
     if 'current' in args.repos and 'current-tripleo' in args.repos:
         raise InvalidArguments('Cannot use "current" and "current-tripleo" '
@@ -91,6 +97,7 @@ def _validate_args(args):
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
 
+
 def _remove_existing(args):
     """Remove any delorean* repos that already exist"""
     for f in os.listdir(args.output_path):
@@ -99,12 +106,14 @@ def _remove_existing(args):
             os.remove(filename)
             print('Removed old repo "%s"' % filename)
 
+
 def _get_base_path(args):
     if args.branch != 'master':
         distro_branch = '%s-%s' % (args.distro, args.branch)
     else:
         distro_branch = args.distro
     return 'http://trunk.rdoproject.org/%s/' % distro_branch
+
 
 def _install_priorities():
     try:
@@ -113,6 +122,7 @@ def _install_priorities():
     except subprocess.CalledProcessError:
         print('ERROR: Failed to install yum-plugin-priorities.')
         raise
+
 
 def _install_repos(args, base_path):
     for repo in args.repos:
@@ -134,6 +144,7 @@ def _install_repos(args, base_path):
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 
+
 def main():
     args = _parse_args()
     _validate_args(args)
@@ -141,6 +152,7 @@ def main():
     _install_priorities()
     _remove_existing(args)
     _install_repos(args, base_path)
+
 
 if __name__ == '__main__':
     main()

@@ -20,6 +20,7 @@ import testtools
 
 from dlrn_repo import main
 
+
 class TestDlrnRepo(testtools.TestCase):
     @mock.patch('dlrn_repo.main._parse_args')
     @mock.patch('dlrn_repo.main._validate_args')
@@ -156,7 +157,7 @@ class TestDlrnRepo(testtools.TestCase):
                                    'Mr. Fusion', 'test')
         mock_get.assert_called_with('roads/current/delorean.repo')
         mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s' %
-                                           main.INCLUDE_PKGS, 'test')
+                                      main.INCLUDE_PKGS, 'test')
 
     def test_install_repos_invalid(self):
         args = mock.Mock()
@@ -195,6 +196,7 @@ class TestDlrnRepo(testtools.TestCase):
         self.assertEqual('centos7', args.distro)
         self.assertEqual('mitaka', args.branch)
         self.assertEqual('test', args.output_path)
+
 
 class TestValidate(testtools.TestCase):
     def setUp(self):
