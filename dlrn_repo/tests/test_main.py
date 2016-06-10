@@ -21,9 +21,6 @@ import testtools
 from dlrn_repo import main
 
 class TestDlrnRepo(testtools.TestCase):
-    def test_target(self):
-        self.assertEqual('/etc/yum.repos.d', main.TARGET)
-
     @mock.patch('dlrn_repo.main._parse_args')
     @mock.patch('dlrn_repo.main._validate_args')
     @mock.patch('dlrn_repo.main._get_base_path')
@@ -40,7 +37,7 @@ class TestDlrnRepo(testtools.TestCase):
         mock_validate.assert_called_once_with(mock_args)
         mock_gbp.assert_called_once_with(mock_args)
         mock_ip.assert_called_once_with()
-        mock_remove.assert_called_once_with()
+        mock_remove.assert_called_once_with(mock_args)
         mock_install.assert_called_once_with(mock_args, mock_path)
 
     @mock.patch('requests.get')
@@ -70,7 +67,9 @@ class TestDlrnRepo(testtools.TestCase):
         fake_list = ['foo.repo', 'delorean.repo',
                      'delorean-current-tripleo.repo']
         mock_listdir.return_value = fake_list
-        main._remove_existing()
+        mock_args = mock.Mock()
+        mock_args.output_path = '/etc/yum.repos.d'
+        main._remove_existing(mock_args)
         self.assertIn(mock.call('/etc/yum.repos.d/delorean.repo'),
                       mock_remove.mock_calls)
         self.assertIn(mock.call('/etc/yum.repos.d/'
@@ -111,10 +110,11 @@ class TestDlrnRepo(testtools.TestCase):
         args = mock.Mock()
         args.repos = ['current']
         args.branch = 'master'
+        args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_called_once_with('roads/current/delorean.repo')
-        mock_write.assert_called_once_with('[delorean]\nMr. Fusion')
+        mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
 
     @mock.patch('dlrn_repo.main._get_repo')
     @mock.patch('dlrn_repo.main._write_repo')
@@ -122,10 +122,12 @@ class TestDlrnRepo(testtools.TestCase):
         args = mock.Mock()
         args.repos = ['current']
         args.branch = 'mitaka'
+        args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_called_once_with('roads/current/delorean.repo')
-        mock_write.assert_called_once_with('[delorean-mitaka]\nMr. Fusion')
+        mock_write.assert_called_once_with('[delorean-mitaka]\nMr. Fusion',
+                                           'test')
 
     @mock.patch('dlrn_repo.main._get_repo')
     @mock.patch('dlrn_repo.main._write_repo')
@@ -133,10 +135,12 @@ class TestDlrnRepo(testtools.TestCase):
         args = mock.Mock()
         args.repos = ['deps']
         args.branch = 'master'
+        args.output_path = 'test'
         mock_get.return_value = '[delorean-deps]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_called_once_with('roads/delorean-deps.repo')
-        mock_write.assert_called_once_with('[delorean-deps]\nMr. Fusion')
+        mock_write.assert_called_once_with('[delorean-deps]\nMr. Fusion',
+                                           'test')
 
     @mock.patch('dlrn_repo.main._get_repo')
     @mock.patch('dlrn_repo.main._write_repo')
@@ -144,14 +148,15 @@ class TestDlrnRepo(testtools.TestCase):
         args = mock.Mock()
         args.repos = ['current-tripleo']
         args.branch = 'master'
+        args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_any_call('roads/current-tripleo/delorean.repo')
         mock_write.assert_any_call('[delorean-current-tripleo]\n'
-                                   'Mr. Fusion')
+                                   'Mr. Fusion', 'test')
         mock_get.assert_called_with('roads/current/delorean.repo')
         mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s' %
-                                           main.INCLUDE_PKGS)
+                                           main.INCLUDE_PKGS, 'test')
 
     def test_install_repos_invalid(self):
         args = mock.Mock()
@@ -162,29 +167,34 @@ class TestDlrnRepo(testtools.TestCase):
     def test_write_repo(self):
         m = mock.mock_open()
         with mock.patch('dlrn_repo.main.open', m, create=True):
-            main._write_repo('[delorean]\nThis=Heavy')
-        m.assert_called_once_with('/etc/yum.repos.d/delorean.repo', 'w')
+            main._write_repo('[delorean]\nThis=Heavy', 'test')
+        m.assert_called_once_with('test/delorean.repo', 'w')
         m().write.assert_called_once_with('[delorean]\nThis=Heavy')
 
     def test_write_repo_invalid(self):
-        self.assertRaises(main.NoRepoTitle, main._write_repo, 'Great Scot!')
+        self.assertRaises(main.NoRepoTitle, main._write_repo, 'Great Scot!',
+                          'test')
 
     def test_parse_args(self):
         with mock.patch.object(sys, 'argv', ['', 'current', 'deps', '-d',
-                                             'centos7', '-b', 'liberty']):
+                                             'centos7', '-b', 'liberty',
+                                             '-o', 'test']):
             args = main._parse_args()
         self.assertEqual(['current', 'deps'], args.repos)
         self.assertEqual('centos7', args.distro)
         self.assertEqual('liberty', args.branch)
+        self.assertEqual('test', args.output_path)
 
     def test_parse_args_long(self):
         with mock.patch.object(sys, 'argv', ['', 'current', '--distro',
                                              'centos7', '--branch',
-                                             'mitaka']):
+                                             'mitaka', '--output-path',
+                                             'test']):
             args = main._parse_args()
         self.assertEqual(['current'], args.repos)
         self.assertEqual('centos7', args.distro)
         self.assertEqual('mitaka', args.branch)
+        self.assertEqual('test', args.output_path)
 
 class TestValidate(testtools.TestCase):
     def setUp(self):

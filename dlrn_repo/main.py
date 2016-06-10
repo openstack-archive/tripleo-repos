@@ -22,10 +22,6 @@ import sys
 
 import requests
 
-TARGET = '/etc/yum.repos.d'
-# Uncomment when doing development if you don't want to mess with your actual
-# system repos while testing
-#TARGET = 'test'
 TITLE_RE = re.compile('\[(.*)\]')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
@@ -61,6 +57,10 @@ def _parse_args():
                         default='master',
                         help='Target branch. Should be the lowercase name of '
                              'the OpenStack release. e.g. liberty')
+    parser.add_argument('-o', '--output-path',
+                        default='/etc/yum.repos.d',
+                        help='Directory in which to save the selected dlrn '
+                             'repos.')
     return parser.parse_args()
 
 def _get_repo(path):
@@ -70,12 +70,12 @@ def _get_repo(path):
     else:
         r.raise_for_status()
 
-def _write_repo(content):
+def _write_repo(content, target):
     m = TITLE_RE.match(content)
     if not m:
         raise NoRepoTitle('Could not find repo title in: \n%s' % content)
     filename = m.group(1) + '.repo'
-    filename = os.path.join(TARGET, filename)
+    filename = os.path.join(target, filename)
     with open(filename, 'w') as f:
         f.write(content)
     print('Installed repo %s to %s' % (m.group(1), filename))
@@ -90,11 +90,11 @@ def _validate_args(args):
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
 
-def _remove_existing():
+def _remove_existing(args):
     """Remove any delorean* repos that already exist"""
-    for f in os.listdir(TARGET):
+    for f in os.listdir(args.output_path):
         if f.startswith('delorean'):
-            filename = os.path.join(TARGET, f)
+            filename = os.path.join(args.output_path, f)
             os.remove(filename)
             print('Removed old repo "%s"' % filename)
 
@@ -119,17 +119,17 @@ def _install_repos(args, base_path):
             content = _get_repo(base_path + 'current/delorean.repo')
             if args.branch != 'master':
                 content = TITLE_RE.sub('[delorean-%s]' % args.branch, content)
-            _write_repo(content)
+            _write_repo(content, args.output_path)
         elif repo == 'deps':
             content = _get_repo(base_path + 'delorean-deps.repo')
-            _write_repo(content)
+            _write_repo(content, args.output_path)
         elif repo == 'current-tripleo':
             content = _get_repo(base_path + 'current-tripleo/delorean.repo')
             content = TITLE_RE.sub('[delorean-current-tripleo]', content)
-            _write_repo(content)
+            _write_repo(content, args.output_path)
             content = _get_repo(base_path + 'current/delorean.repo')
             content += '\n%s' % INCLUDE_PKGS
-            _write_repo(content)
+            _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 
@@ -138,7 +138,7 @@ def main():
     _validate_args(args)
     base_path = _get_base_path(args)
     _install_priorities()
-    _remove_existing()
+    _remove_existing(args)
     _install_repos(args, base_path)
 
 if __name__ == '__main__':
