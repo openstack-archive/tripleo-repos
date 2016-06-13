@@ -31,6 +31,23 @@ Write repos to a different path::
 
     dlrn-repo -o ~/test-repos current deps
 
+To use this for TripleO development, replace the tripleo.sh --repo-setup
+step with the following::
+
+    git clone https://github.com/cybertron/dlrn-repo
+    cd dlrn-repo
+    sudo ./setup.py install
+    sudo dlrn-repo current-tripleo
+
+Now you're ready to install the undercloud::
+
+    tripleo.sh --undercloud
+
+And to build images::
+
+    export OVERCLOUD_IMAGES_DIB_YUM_REPO_CONF="$(ls /etc/yum.repos.d/delorean*)"
+    tripleo.sh --overcloud-images
+
 Note that this is intended as a tool for bootstrapping the repo setup in
 things like TripleO, so it should not have any runtime OpenStack dependencies
 or we end up in a chicken-and-egg pickle, and let's be honest - no one wants a
