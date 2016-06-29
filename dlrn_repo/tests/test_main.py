@@ -152,6 +152,18 @@ class TestDlrnRepo(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
+        mock_get.assert_called_once_with('roads/current-tripleo/delorean.repo')
+        mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
+
+    @mock.patch('dlrn_repo.main._get_repo')
+    @mock.patch('dlrn_repo.main._write_repo')
+    def test_install_repos_current_tripleo_dev(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['current-tripleo-dev']
+        args.branch = 'master'
+        args.output_path = 'test'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
         mock_get.assert_any_call('roads/delorean-deps.repo')
         # This is the wrong name for the deps repo, but I'm not bothered
         # enough by that to mess with mocking multiple different calls.
@@ -223,15 +235,30 @@ class TestValidate(testtools.TestCase):
     def test_good(self):
         main._validate_args(self.args)
 
+    def test_current_and_tripleo_dev(self):
+        self.args.repos = ['current', 'current-tripleo-dev']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    def test_deps_and_tripleo_dev(self):
+        self.args.repos = ['deps', 'current-tripleo-dev']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    def test_branch_and_tripleo_dev(self):
+        self.args.repos = ['current-tripleo-dev']
+        self.args.branch = 'liberty'
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
-    def test_deps_and_tripleo(self):
+    def test_deps_and_tripleo_allowed(self):
         self.args.repos = ['deps', 'current-tripleo']
-        self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args)
+        main._validate_args(self.args)
 
     def test_branch_and_tripleo(self):
         self.args.repos = ['current-tripleo']

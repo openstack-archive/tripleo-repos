@@ -51,7 +51,8 @@ def _parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         help='A list of delorean repos. Available repos: '
-                             'current, deps, current-tripleo. current-tripleo '
+                             'current, deps, current-tripleo, '
+                             'current-tripleo-dev. current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
                              'deps repos, but sets the current repo to only '
                              'be used for TripleO projects. It also modifies '
@@ -92,12 +93,16 @@ def _write_repo(content, target):
 
 
 def _validate_args(args):
-    if 'current-tripleo' in args.repos and len(args.repos) > 1:
-        raise InvalidArguments('current-tripleo should not be used with any '
-                               'other repos.')
-    if args.branch != 'master' and 'current-tripleo' in args.repos:
+    if 'current-tripleo-dev' in args.repos and len(args.repos) > 1:
+        raise InvalidArguments('current-tripleo-dev should not be used with '
+                               'any other repos.')
+    if args.branch != 'master' and ('current-tripleo-dev' in args.repos or
+                                    'current-tripleo' in args.repos):
         raise InvalidArguments('Cannot use current-tripleo on any branch '
                                'except master')
+    if 'current-tripleo' in args.repos and 'current' in args.repos:
+        raise InvalidArguments('Cannot use current and current-tripleo at the '
+                               'same time.')
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
 
@@ -147,6 +152,9 @@ def _install_repos(args, base_path):
             content = _get_repo(base_path + 'delorean-deps.repo')
             _write_repo(content, args.output_path)
         elif repo == 'current-tripleo':
+            content = _get_repo(base_path + 'current-tripleo/delorean.repo')
+            _write_repo(content, args.output_path)
+        elif repo == 'current-tripleo-dev':
             content = _get_repo(base_path + 'delorean-deps.repo')
             # We need to twiddle priorities since we're mixing multiple repos
             # that are generated with the same priority.
