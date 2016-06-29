@@ -50,9 +50,10 @@ def _parse_args():
                     'correctly, so that will also be installed.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
-                        help='A list of delorean repos. Available repos: '
-                             'current, deps, current-tripleo, '
-                             'current-tripleo-dev. current-tripleo-dev '
+                        choices=['current', 'deps', 'current-tripleo',
+                                 'current-tripleo-dev'],
+                        help='A list of delorean repos.  Available repos: '
+                             '%(choices)s.  current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
                              'deps repos, but sets the current repo to only '
                              'be used for TripleO projects. It also modifies '
