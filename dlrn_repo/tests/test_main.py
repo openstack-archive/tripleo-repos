@@ -152,7 +152,9 @@ class TestDlrnRepo(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with('roads/current-tripleo/delorean.repo')
+        mock_get.assert_called_once_with('http://buildlogs.centos.org/centos/'
+                                         '7/cloud/x86_64/rdo-trunk-master-'
+                                         'tripleo/delorean.repo')
         mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
 
     @mock.patch('dlrn_repo.main._get_repo')
@@ -169,7 +171,9 @@ class TestDlrnRepo(testtools.TestCase):
         # enough by that to mess with mocking multiple different calls.
         mock_write.assert_any_call('[delorean]\n'
                                    'Mr. Fusion\npriority=30', 'test')
-        mock_get.assert_any_call('roads/current-tripleo/delorean.repo')
+        mock_get.assert_any_call('http://buildlogs.centos.org/centos/'
+                                 '7/cloud/x86_64/rdo-trunk-master-'
+                                 'tripleo/delorean.repo')
         mock_write.assert_any_call('[delorean-current-tripleo]\n'
                                    'Mr. Fusion\npriority=20', 'test')
         mock_get.assert_called_with('roads/current/delorean.repo')

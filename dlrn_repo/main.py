@@ -143,6 +143,10 @@ def _change_priority(content, new_priority):
 
 
 def _install_repos(args, base_path):
+    # NOTE(bnemec): If/when we support a distro other than centos7 we'll need
+    # a way to handle setting this appropriately.
+    current_tripleo_repo = ('http://buildlogs.centos.org/centos/7/cloud/x86_64'
+                            '/rdo-trunk-master-tripleo/delorean.repo')
     for repo in args.repos:
         if repo == 'current':
             content = _get_repo(base_path + 'current/delorean.repo')
@@ -153,7 +157,7 @@ def _install_repos(args, base_path):
             content = _get_repo(base_path + 'delorean-deps.repo')
             _write_repo(content, args.output_path)
         elif repo == 'current-tripleo':
-            content = _get_repo(base_path + 'current-tripleo/delorean.repo')
+            content = _get_repo(current_tripleo_repo)
             _write_repo(content, args.output_path)
         elif repo == 'current-tripleo-dev':
             content = _get_repo(base_path + 'delorean-deps.repo')
@@ -161,7 +165,7 @@ def _install_repos(args, base_path):
             # that are generated with the same priority.
             content = _change_priority(content, 30)
             _write_repo(content, args.output_path)
-            content = _get_repo(base_path + 'current-tripleo/delorean.repo')
+            content = _get_repo(current_tripleo_repo)
             content = TITLE_RE.sub('[delorean-current-tripleo]', content)
             content = _change_priority(content, 20)
             _write_repo(content, args.output_path)
