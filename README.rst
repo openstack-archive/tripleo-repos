@@ -18,10 +18,14 @@ Install current master dlrn repo and the deps repo::
 
     dlrn-repo current deps
 
-Install the current-tripleo repo.  This will also pull current and deps, and
-will adjust the priorities of each repo appropriately::
+Install current-tripleo dlrn repo and the deps repo::
 
-    dlrn-repo current-tripleo
+    dlrn-repo current-tripleo deps
+
+Install the current-tripleo-dev repo.  This will also pull current and deps,
+and will adjust the priorities of each repo appropriately::
+
+    dlrn-repo current-tripleo-dev
 
 Install the mitaka dlrn repo and deps::
 
@@ -40,7 +44,7 @@ step with the following::
     git clone https://github.com/cybertron/dlrn-repo
     cd dlrn-repo
     sudo ./setup.py install
-    sudo dlrn-repo current-tripleo
+    sudo dlrn-repo current-tripleo-dev
 
 Now you're ready to install the undercloud::
 
