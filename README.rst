@@ -1,7 +1,7 @@
-dlrn-repo
-=========
+tripleo-repos
+=============
 
-A tool for managing dlrn repos.
+A tool for managing tripleo repos from places like dlrn and Ceph.
 
 See: https://github.com/openstack-packages/DLRN
 
@@ -10,30 +10,30 @@ require that to work sanely.
 
 .. note:: The tool will remove any delorean* repos at the target location
           to avoid conflicts with older repos.  This means you must specify
-          all of the repos you want to enable in one dlrn-repo call.
+          all of the repos you want to enable in one tripleo-repos call.
 
 Examples
 --------
 Install current master dlrn repo and the deps repo::
 
-    dlrn-repo current deps
+    tripleo-repos current deps
 
 Install current-tripleo dlrn repo and the deps repo::
 
-    dlrn-repo current-tripleo deps
+    tripleo-repos current-tripleo deps
 
 Install the current-tripleo-dev repo.  This will also pull current and deps,
 and will adjust the priorities of each repo appropriately::
 
-    dlrn-repo current-tripleo-dev
+    tripleo-repos current-tripleo-dev
 
 Install the mitaka dlrn repo and deps::
 
-    dlrn-repo -b mitaka current deps
+    tripleo-repos -b mitaka current deps
 
 Write repos to a different path::
 
-    dlrn-repo -o ~/test-repos current deps
+    tripleo-repos -o ~/test-repos current deps
 
 TripleO
 ```````
@@ -41,10 +41,10 @@ TripleO
 To use this for TripleO development, replace the tripleo.sh --repo-setup
 step with the following::
 
-    git clone https://github.com/cybertron/dlrn-repo
-    cd dlrn-repo
+    git clone https://github.com/cybertron/tripleo-repos
+    cd tripleo-repos
     sudo ./setup.py install
-    sudo dlrn-repo current-tripleo-dev
+    sudo tripleo-repos current-tripleo-dev
 
 Now you're ready to install the undercloud::
 
@@ -55,7 +55,7 @@ And to build images::
     export OVERCLOUD_IMAGES_DIB_YUM_REPO_CONF="$(ls /etc/yum.repos.d/delorean*)"
     tripleo.sh --overcloud-images
 
-.. note:: This is intended as a tool for bootstrapping the repo setup in
-    things like TripleO, so it should not have any runtime OpenStack dependencies
+.. note:: This is a tool for bootstrapping the repo setup for TripleO,
+    so it should not have any runtime OpenStack dependencies
     or we end up in a chicken-and-egg pickle, and let's be honest - no one wants a
     chicken and egg pickle.

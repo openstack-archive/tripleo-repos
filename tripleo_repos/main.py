@@ -45,14 +45,14 @@ class NoRepoTitle(Exception):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description='Download and instll dlrn repos. Note that these repos '
-                    'require yum-plugin-priorities in order to function '
-                    'correctly, so that will also be installed.',
+        description='Download and install repos necessary for TripleO. Note '
+                    'that some of these repos require yum-plugin-priorities, '
+                    'so that will also be installed.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         choices=['current', 'deps', 'current-tripleo',
                                  'current-tripleo-dev'],
-                        help='A list of delorean repos.  Available repos: '
+                        help='A list of repos.  Available repos: '
                              '%(choices)s.  current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
                              'deps repos, but sets the current repo to only '
@@ -69,8 +69,7 @@ def _parse_args():
                              'the OpenStack release. e.g. liberty')
     parser.add_argument('-o', '--output-path',
                         default='/etc/yum.repos.d',
-                        help='Directory in which to save the selected dlrn '
-                             'repos.')
+                        help='Directory in which to save the selected repos.')
     return parser.parse_args()
 
 

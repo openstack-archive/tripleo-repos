@@ -18,16 +18,16 @@ import sys
 import mock
 import testtools
 
-from dlrn_repo import main
+from tripleo_repos import main
 
 
 class TestDlrnRepo(testtools.TestCase):
-    @mock.patch('dlrn_repo.main._parse_args')
-    @mock.patch('dlrn_repo.main._validate_args')
-    @mock.patch('dlrn_repo.main._get_base_path')
-    @mock.patch('dlrn_repo.main._install_priorities')
-    @mock.patch('dlrn_repo.main._remove_existing')
-    @mock.patch('dlrn_repo.main._install_repos')
+    @mock.patch('tripleo_repos.main._parse_args')
+    @mock.patch('tripleo_repos.main._validate_args')
+    @mock.patch('tripleo_repos.main._get_base_path')
+    @mock.patch('tripleo_repos.main._install_priorities')
+    @mock.patch('tripleo_repos.main._remove_existing')
+    @mock.patch('tripleo_repos.main._install_repos')
     def test_main(self, mock_install, mock_remove, mock_ip, mock_gbp,
                   mock_validate, mock_parse):
         mock_args = mock.Mock()
@@ -105,8 +105,8 @@ class TestDlrnRepo(testtools.TestCase):
         self.assertRaises(subprocess.CalledProcessError,
                           main._install_priorities)
 
-    @mock.patch('dlrn_repo.main._get_repo')
-    @mock.patch('dlrn_repo.main._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
@@ -117,8 +117,8 @@ class TestDlrnRepo(testtools.TestCase):
         mock_get.assert_called_once_with('roads/current/delorean.repo')
         mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
 
-    @mock.patch('dlrn_repo.main._get_repo')
-    @mock.patch('dlrn_repo.main._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_mitaka(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
@@ -130,8 +130,8 @@ class TestDlrnRepo(testtools.TestCase):
         mock_write.assert_called_once_with('[delorean-mitaka]\nMr. Fusion',
                                            'test')
 
-    @mock.patch('dlrn_repo.main._get_repo')
-    @mock.patch('dlrn_repo.main._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_deps(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['deps']
@@ -143,8 +143,8 @@ class TestDlrnRepo(testtools.TestCase):
         mock_write.assert_called_once_with('[delorean-deps]\nMr. Fusion',
                                            'test')
 
-    @mock.patch('dlrn_repo.main._get_repo')
-    @mock.patch('dlrn_repo.main._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_tripleo(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current-tripleo']
@@ -157,8 +157,8 @@ class TestDlrnRepo(testtools.TestCase):
                                          'tripleo/delorean.repo')
         mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
 
-    @mock.patch('dlrn_repo.main._get_repo')
-    @mock.patch('dlrn_repo.main._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_tripleo_dev(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current-tripleo-dev']
@@ -189,7 +189,7 @@ class TestDlrnRepo(testtools.TestCase):
 
     def test_write_repo(self):
         m = mock.mock_open()
-        with mock.patch('dlrn_repo.main.open', m, create=True):
+        with mock.patch('tripleo_repos.main.open', m, create=True):
             main._write_repo('[delorean]\nThis=Heavy', 'test')
         m.assert_called_once_with('test/delorean.repo', 'w')
         m().write.assert_called_once_with('[delorean]\nThis=Heavy')
