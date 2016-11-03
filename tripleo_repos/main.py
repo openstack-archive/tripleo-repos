@@ -33,6 +33,8 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'openstack-tripleo-puppet-elements,openstack-puppet-modules,'
                 'dib-utils,openstack-tripleo-ui,puppet-*'
                 )
+OPSTOOLS_REPO_URL = ('https://raw.githubusercontent.com/centos-opstools/'
+                     'opstools-repo/master/opstools.repo')
 
 
 class InvalidArguments(Exception):
@@ -51,7 +53,7 @@ def _parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         choices=['current', 'deps', 'current-tripleo',
-                                 'current-tripleo-dev', 'ceph'],
+                                 'current-tripleo-dev', 'ceph', 'opstools'],
                         help='A list of repos.  Available repos: '
                              '%(choices)s.  current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
@@ -82,7 +84,7 @@ def _get_repo(path):
 
 
 def _write_repo(content, target):
-    m = TITLE_RE.match(content)
+    m = TITLE_RE.search(content)
     if not m:
         raise NoRepoTitle('Could not find repo title in: \n%s' % content)
     filename = m.group(1) + '.repo'
@@ -108,9 +110,9 @@ def _validate_args(args):
 
 
 def _remove_existing(args):
-    """Remove any delorean* repos that already exist"""
+    """Remove any delorean* or opstools repos that already exist"""
     for f in os.listdir(args.output_path):
-        if f.startswith('delorean'):
+        if f.startswith('delorean') or f == 'centos-opstools.repo':
             filename = os.path.join(args.output_path, f)
             os.remove(filename)
             print('Removed old repo "%s"' % filename)
@@ -201,6 +203,9 @@ def _install_repos(args, base_path):
                 _install_ceph('hammer')
             else:
                 _install_ceph('jewel')
+        elif repo == 'opstools':
+            content = _get_repo(OPSTOOLS_REPO_URL)
+            _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 

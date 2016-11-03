@@ -66,7 +66,7 @@ class TestTripleORepos(testtools.TestCase):
     @mock.patch('os.remove')
     def test_remove_existing(self, mock_remove, mock_listdir):
         fake_list = ['foo.repo', 'delorean.repo',
-                     'delorean-current-tripleo.repo']
+                     'delorean-current-tripleo.repo', 'centos-opstools.repo']
         mock_listdir.return_value = fake_list
         mock_args = mock.Mock()
         mock_args.output_path = '/etc/yum.repos.d'
@@ -75,6 +75,8 @@ class TestTripleORepos(testtools.TestCase):
                       mock_remove.mock_calls)
         self.assertIn(mock.call('/etc/yum.repos.d/'
                                 'delorean-current-tripleo.repo'),
+                      mock_remove.mock_calls)
+        self.assertIn(mock.call('/etc/yum.repos.d/centos-opstools.repo'),
                       mock_remove.mock_calls)
         self.assertNotIn(mock.call('/etc/yum.repos.d/foo.repo'),
                          mock_remove.mock_calls)
@@ -199,6 +201,19 @@ class TestTripleORepos(testtools.TestCase):
         main._install_repos(args, 'roads/')
         mock_install_ceph.assert_called_with('hammer')
 
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_opstools(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['opstools']
+        args.branch = 'master'
+        args.output_path = 'test'
+        mock_get.return_value = '[centos-opstools]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        mock_get.assert_called_once_with(main.OPSTOOLS_REPO_URL)
+        mock_write.assert_called_once_with('[centos-opstools]\nMr. Fusion',
+                                           'test')
+
     def test_install_repos_invalid(self):
         args = mock.Mock()
         args.repos = ['roads?']
@@ -208,9 +223,9 @@ class TestTripleORepos(testtools.TestCase):
     def test_write_repo(self):
         m = mock.mock_open()
         with mock.patch('tripleo_repos.main.open', m, create=True):
-            main._write_repo('[delorean]\nThis=Heavy', 'test')
+            main._write_repo('#Doc\n[delorean]\nThis=Heavy', 'test')
         m.assert_called_once_with('test/delorean.repo', 'w')
-        m().write.assert_called_once_with('[delorean]\nThis=Heavy')
+        m().write.assert_called_once_with('#Doc\n[delorean]\nThis=Heavy')
 
     def test_write_repo_invalid(self):
         self.assertRaises(main.NoRepoTitle, main._write_repo, 'Great Scot!',
