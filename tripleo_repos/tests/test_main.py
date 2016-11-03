@@ -21,7 +21,7 @@ import testtools
 from tripleo_repos import main
 
 
-class TestDlrnRepo(testtools.TestCase):
+class TestTripleORepos(testtools.TestCase):
     @mock.patch('tripleo_repos.main._parse_args')
     @mock.patch('tripleo_repos.main._validate_args')
     @mock.patch('tripleo_repos.main._get_base_path')
@@ -181,6 +181,24 @@ class TestDlrnRepo(testtools.TestCase):
                                       'priority=10' %
                                       main.INCLUDE_PKGS, 'test')
 
+    @mock.patch('tripleo_repos.main._install_ceph')
+    def test_install_repos_ceph(self, mock_install_ceph):
+        args = mock.Mock()
+        args.repos = ['ceph']
+        args.branch = 'master'
+        args.output_path = 'test'
+        main._install_repos(args, 'roads/')
+        mock_install_ceph.assert_called_with('jewel')
+
+    @mock.patch('tripleo_repos.main._install_ceph')
+    def test_install_repos_ceph_mitaka(self, mock_install_ceph):
+        args = mock.Mock()
+        args.repos = ['ceph']
+        args.branch = 'mitaka'
+        args.output_path = 'test'
+        main._install_repos(args, 'roads/')
+        mock_install_ceph.assert_called_with('hammer')
+
     def test_install_repos_invalid(self):
         args = mock.Mock()
         args.repos = ['roads?']
@@ -226,6 +244,44 @@ class TestDlrnRepo(testtools.TestCase):
     def test_change_priority_none(self):
         result = main._change_priority('[delorean]', 10)
         self.assertEqual('[delorean]\npriority=10', result)
+
+    @mock.patch('subprocess.check_call')
+    def test_install_ceph(self, mock_check_call):
+        main._install_ceph('jewel')
+        self.assertEqual([mock.call(['yum', 'remove', '-y',
+                                     'centos-release-ceph-*']),
+                          mock.call(['yum', 'install', '-y',
+                                     '--enablerepo=extras',
+                                     'centos-release-ceph-jewel']),
+                          mock.call(['sed', '-i', '-e',
+                                     's/gpgcheck=.*/gpgcheck=0/',
+                                     '/etc/yum.repos.d/CentOS-Ceph-Jewel.repo'
+                                     ])
+                          ],
+                          mock_check_call.mock_calls)
+
+    @mock.patch('subprocess.check_call')
+    def test_install_ceph_fail1(self, mock_check_call):
+        mock_check_call.side_effect = [subprocess.CalledProcessError(1, 'Foo'),
+                                       0, 0]
+        self.assertRaises(subprocess.CalledProcessError,
+                          main._install_ceph, 'jewel')
+
+    @mock.patch('subprocess.check_call')
+    def test_install_ceph_fail2(self, mock_check_call):
+        mock_check_call.side_effect = [0,
+                                       subprocess.CalledProcessError(1, 'Foo'),
+                                       0]
+        self.assertRaises(subprocess.CalledProcessError,
+                          main._install_ceph, 'jewel')
+
+    @mock.patch('subprocess.check_call')
+    def test_install_ceph_fail3(self, mock_check_call):
+        mock_check_call.side_effect = [0, 0,
+                                       subprocess.CalledProcessError(1, 'Foo')
+                                       ]
+        self.assertRaises(subprocess.CalledProcessError,
+                          main._install_ceph, 'jewel')
 
 
 class TestValidate(testtools.TestCase):

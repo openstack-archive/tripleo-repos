@@ -51,7 +51,7 @@ def _parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         choices=['current', 'deps', 'current-tripleo',
-                                 'current-tripleo-dev'],
+                                 'current-tripleo-dev', 'ceph'],
                         help='A list of repos.  Available repos: '
                              '%(choices)s.  current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
@@ -133,6 +133,30 @@ def _install_priorities():
         raise
 
 
+def _install_ceph(release):
+    """Install the Ceph repo specified by release"""
+    # Make sure we're starting with a clean slate
+    try:
+        print('Cleaning up existing ceph repos')
+        subprocess.check_call(['yum', 'remove', '-y', 'centos-release-ceph-*'])
+    except subprocess.CalledProcessError:
+        print('ERROR: Failed to clean up ceph release package')
+        raise
+
+    pkg_name = 'centos-release-ceph-%s' % release
+    try:
+        subprocess.check_call(['yum', 'install', '-y', '--enablerepo=extras',
+                               pkg_name])
+    except subprocess.CalledProcessError:
+        print('ERROR: Failed to install %s.' % pkg_name)
+        raise
+    subprocess.check_call(['sed', '-i', '-e',
+                           's/gpgcheck=.*/gpgcheck=0/',
+                           '/etc/yum.repos.d/CentOS-Ceph-%s.repo' %
+                           release.title()])
+    print('Installed repo for Ceph release %s' % release)
+
+
 def _change_priority(content, new_priority):
     new_content = PRIORITY_RE.sub('priority=%d' % new_priority, content)
     # This shouldn't happen, but let's be safe.
@@ -172,6 +196,11 @@ def _install_repos(args, base_path):
             content += '\n%s' % INCLUDE_PKGS
             content = _change_priority(content, 10)
             _write_repo(content, args.output_path)
+        elif repo == 'ceph':
+            if args.branch in ['liberty', 'mitaka']:
+                _install_ceph('hammer')
+            else:
+                _install_ceph('jewel')
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 
