@@ -35,6 +35,11 @@ Write repos to a different path::
 
     tripleo-repos -o ~/test-repos current deps
 
+Install the current-tripleo, deps, and ceph repos.  NOTE: The Ceph repo is
+installed from a package and thus does not respect -o::
+
+    tripleo-repos current-tripleo deps ceph
+
 TripleO
 ```````
 

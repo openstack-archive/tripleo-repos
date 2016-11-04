@@ -345,3 +345,9 @@ class TestValidate(testtools.TestCase):
         self.args.distro = 'Jigawatts 1.21'
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
+
+    def test_ceph_output_path(self):
+        self.args.repos = ['ceph']
+        self.args.output_path = 'foo'
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)

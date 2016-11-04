@@ -35,6 +35,7 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 )
 OPSTOOLS_REPO_URL = ('https://raw.githubusercontent.com/centos-opstools/'
                      'opstools-repo/master/opstools.repo')
+DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
 
 
 class InvalidArguments(Exception):
@@ -70,7 +71,7 @@ def _parse_args():
                         help='Target branch. Should be the lowercase name of '
                              'the OpenStack release. e.g. liberty')
     parser.add_argument('-o', '--output-path',
-                        default='/etc/yum.repos.d',
+                        default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
     return parser.parse_args()
 
@@ -107,6 +108,9 @@ def _validate_args(args):
                                'same time.')
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
+    if 'ceph' in args.repos and args.output_path != DEFAULT_OUTPUT_PATH:
+        raise InvalidArguments('The Ceph repo is installed from a package and '
+                               'cannot be installed to a custom location.')
 
 
 def _remove_existing(args):
