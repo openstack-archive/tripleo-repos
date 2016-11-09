@@ -172,7 +172,7 @@ class TestTripleORepos(testtools.TestCase):
         # This is the wrong name for the deps repo, but I'm not bothered
         # enough by that to mess with mocking multiple different calls.
         mock_write.assert_any_call('[delorean]\n'
-                                   'Mr. Fusion\npriority=30', 'test')
+                                   'Mr. Fusion', 'test')
         mock_get.assert_any_call('http://buildlogs.centos.org/centos/'
                                  '7/cloud/x86_64/rdo-trunk-master-'
                                  'tripleo/delorean.repo')

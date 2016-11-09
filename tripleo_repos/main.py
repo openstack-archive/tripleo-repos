@@ -192,12 +192,11 @@ def _install_repos(args, base_path):
             _write_repo(content, args.output_path)
         elif repo == 'current-tripleo-dev':
             content = _get_repo(base_path + 'delorean-deps.repo')
-            # We need to twiddle priorities since we're mixing multiple repos
-            # that are generated with the same priority.
-            content = _change_priority(content, 30)
             _write_repo(content, args.output_path)
             content = _get_repo(current_tripleo_repo)
             content = TITLE_RE.sub('[delorean-current-tripleo]', content)
+            # We need to twiddle priorities since we're mixing multiple repos
+            # that are generated with the same priority.
             content = _change_priority(content, 20)
             _write_repo(content, args.output_path)
             content = _get_repo(base_path + 'current/delorean.repo')
