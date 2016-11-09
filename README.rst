@@ -49,7 +49,7 @@ step with the following::
     git clone https://github.com/cybertron/tripleo-repos
     cd tripleo-repos
     sudo ./setup.py install
-    sudo tripleo-repos current-tripleo-dev
+    sudo tripleo-repos current-tripleo-dev ceph
 
 Now you're ready to install the undercloud::
 
@@ -57,7 +57,7 @@ Now you're ready to install the undercloud::
 
 And to build images::
 
-    export OVERCLOUD_IMAGES_DIB_YUM_REPO_CONF="$(ls /etc/yum.repos.d/delorean*)"
+    export OVERCLOUD_IMAGES_DIB_YUM_REPO_CONF="$(ls /etc/yum.repos.d/delorean* /etc/yum.repos.d/CentOS-Ceph-*)"
     tripleo.sh --overcloud-images
 
 .. note:: This is a tool for bootstrapping the repo setup for TripleO,
