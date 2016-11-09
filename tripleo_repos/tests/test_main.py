@@ -315,6 +315,11 @@ class TestValidate(testtools.TestCase):
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
+    def test_ceph_and_tripleo_dev(self):
+        self.args.repos = ['current-tripleo-dev', 'ceph']
+        self.args.output_path = main.DEFAULT_OUTPUT_PATH
+        main._validate_args(self.args)
+
     def test_deps_and_tripleo_dev(self):
         self.args.repos = ['deps', 'current-tripleo-dev']
         self.assertRaises(main.InvalidArguments, main._validate_args,

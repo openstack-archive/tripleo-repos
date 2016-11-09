@@ -96,9 +96,11 @@ def _write_repo(content, target):
 
 
 def _validate_args(args):
-    if 'current-tripleo-dev' in args.repos and len(args.repos) > 1:
+    if ('current-tripleo-dev' in args.repos and
+            ('current' in args.repos or 'current-tripleo' in args.repos or
+             'deps' in args.repos)):
         raise InvalidArguments('current-tripleo-dev should not be used with '
-                               'any other repos.')
+                               'any other dlrn repos.')
     if args.branch != 'master' and ('current-tripleo-dev' in args.repos or
                                     'current-tripleo' in args.repos):
         raise InvalidArguments('Cannot use current-tripleo on any branch '
