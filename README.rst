@@ -16,11 +16,11 @@ Examples
 --------
 Install current master dlrn repo and the deps repo::
 
-    tripleo-repos current deps
+    tripleo-repos current
 
 Install current-tripleo dlrn repo and the deps repo::
 
-    tripleo-repos current-tripleo deps
+    tripleo-repos current-tripleo
 
 Install the current-tripleo-dev repo.  This will also pull current and deps,
 and will adjust the priorities of each repo appropriately::
@@ -29,16 +29,16 @@ and will adjust the priorities of each repo appropriately::
 
 Install the mitaka dlrn repo and deps::
 
-    tripleo-repos -b mitaka current deps
+    tripleo-repos -b mitaka current
 
 Write repos to a different path::
 
-    tripleo-repos -o ~/test-repos current deps
+    tripleo-repos -o ~/test-repos current
 
 Install the current-tripleo, deps, and ceph repos.  NOTE: The Ceph repo is
 installed from a package and thus does not respect -o::
 
-    tripleo-repos current-tripleo deps ceph
+    tripleo-repos current-tripleo ceph
 
 TripleO
 ```````

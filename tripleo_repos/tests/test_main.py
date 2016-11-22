@@ -116,8 +116,14 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with('roads/current/delorean.repo')
-        mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
+        self.assertEqual([mock.call('roads/current/delorean.repo'),
+                          mock.call('roads/delorean-deps.repo'),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
 
     @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
@@ -128,9 +134,14 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with('roads/current/delorean.repo')
-        mock_write.assert_called_once_with('[delorean-mitaka]\nMr. Fusion',
-                                           'test')
+        self.assertEqual([mock.call('roads/current/delorean.repo'),
+                          mock.call('roads/delorean-deps.repo'),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean-mitaka]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
 
     @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
@@ -154,10 +165,16 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with('http://buildlogs.centos.org/centos/'
-                                         '7/cloud/x86_64/rdo-trunk-master-'
-                                         'tripleo/delorean.repo')
-        mock_write.assert_called_once_with('[delorean]\nMr. Fusion', 'test')
+        self.assertEqual([mock.call('http://buildlogs.centos.org/centos/'
+                                    '7/cloud/x86_64/rdo-trunk-master-'
+                                    'tripleo/delorean.repo'),
+                          mock.call('roads/delorean-deps.repo'),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
 
     @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
@@ -273,7 +290,7 @@ class TestTripleORepos(testtools.TestCase):
                                      '/etc/yum.repos.d/CentOS-Ceph-Jewel.repo'
                                      ])
                           ],
-                          mock_check_call.mock_calls)
+                         mock_check_call.mock_calls)
 
     @mock.patch('subprocess.check_call')
     def test_install_ceph_fail1(self, mock_check_call):

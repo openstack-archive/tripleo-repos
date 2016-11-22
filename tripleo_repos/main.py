@@ -56,7 +56,9 @@ def _parse_args():
                         choices=['current', 'deps', 'current-tripleo',
                                  'current-tripleo-dev', 'ceph', 'opstools'],
                         help='A list of repos.  Available repos: '
-                             '%(choices)s.  current-tripleo-dev '
+                             '%(choices)s.  The deps repo will always be '
+                             'included when using current or '
+                             'current-tripleo.  current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
                              'deps repos, but sets the current repo to only '
                              'be used for TripleO projects. It also modifies '
@@ -178,18 +180,24 @@ def _install_repos(args, base_path):
     # a way to handle setting this appropriately.
     current_tripleo_repo = ('http://buildlogs.centos.org/centos/7/cloud/x86_64'
                             '/rdo-trunk-master-tripleo/delorean.repo')
+
+    def install_deps(args, base_path):
+        content = _get_repo(base_path + 'delorean-deps.repo')
+        _write_repo(content, args.output_path)
+
     for repo in args.repos:
         if repo == 'current':
             content = _get_repo(base_path + 'current/delorean.repo')
             if args.branch != 'master':
                 content = TITLE_RE.sub('[delorean-%s]' % args.branch, content)
             _write_repo(content, args.output_path)
+            install_deps(args, base_path)
         elif repo == 'deps':
-            content = _get_repo(base_path + 'delorean-deps.repo')
-            _write_repo(content, args.output_path)
+            install_deps(args, base_path)
         elif repo == 'current-tripleo':
             content = _get_repo(current_tripleo_repo)
             _write_repo(content, args.output_path)
+            install_deps(args, base_path)
         elif repo == 'current-tripleo-dev':
             content = _get_repo(base_path + 'delorean-deps.repo')
             _write_repo(content, args.output_path)
