@@ -1,1 +1,1 @@
-requests
+requests>=2.10.0,!=2.12.2  # Apache-2.0
