@@ -53,12 +53,13 @@ def _parse_args():
                     'so that will also be installed.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
-                        choices=['current', 'deps', 'current-tripleo',
-                                 'current-tripleo-dev', 'ceph', 'opstools'],
+                        choices=['current', 'current-passed-ci', 'deps',
+                                 'current-tripleo', 'current-tripleo-dev',
+                                 'ceph', 'opstools'],
                         help='A list of repos.  Available repos: '
                              '%(choices)s.  The deps repo will always be '
-                             'included when using current or '
-                             'current-tripleo.  current-tripleo-dev '
+                             'included when using current, current-passed-ci '
+                             'or current-tripleo.  The current-tripleo-dev '
                              'downloads the current-tripleo, current, and '
                              'deps repos, but sets the current repo to only '
                              'be used for TripleO projects. It also modifies '
@@ -100,16 +101,18 @@ def _write_repo(content, target):
 def _validate_args(args):
     if ('current-tripleo-dev' in args.repos and
             ('current' in args.repos or 'current-tripleo' in args.repos or
-             'deps' in args.repos)):
+             'deps' in args.repos or 'current-passed-ci'
+             in args.repos)):
         raise InvalidArguments('current-tripleo-dev should not be used with '
                                'any other dlrn repos.')
     if args.branch != 'master' and ('current-tripleo-dev' in args.repos or
                                     'current-tripleo' in args.repos):
         raise InvalidArguments('Cannot use current-tripleo on any branch '
                                'except master')
-    if 'current-tripleo' in args.repos and 'current' in args.repos:
-        raise InvalidArguments('Cannot use current and current-tripleo at the '
-                               'same time.')
+    if ('current-tripleo' in args.repos or 'current-passed-ci'
+            in args.repos) and 'current' in args.repos:
+        raise InvalidArguments('Cannot use current and current-passed-ci or '
+                               'current-tripleo at the same time.')
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
     if 'ceph' in args.repos and args.output_path != DEFAULT_OUTPUT_PATH:
@@ -186,8 +189,8 @@ def _install_repos(args, base_path):
         _write_repo(content, args.output_path)
 
     for repo in args.repos:
-        if repo == 'current':
-            content = _get_repo(base_path + 'current/delorean.repo')
+        if repo in ['current', 'current-passed-ci']:
+            content = _get_repo(base_path + '%s/delorean.repo' % repo)
             if args.branch != 'master':
                 content = TITLE_RE.sub('[delorean-%s]' % args.branch, content)
             _write_repo(content, args.output_path)
