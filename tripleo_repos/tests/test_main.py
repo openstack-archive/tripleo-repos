@@ -145,6 +145,24 @@ class TestTripleORepos(testtools.TestCase):
 
     @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_current_passed_ci_ocata(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['current-passed-ci']
+        args.branch = 'ocata'
+        args.output_path = 'test'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        self.assertEqual([mock.call('roads/current-passed-ci/delorean.repo'),
+                          mock.call('roads/delorean-deps.repo'),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean-ocata]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
+
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_deps(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['deps']
@@ -259,12 +277,12 @@ class TestTripleORepos(testtools.TestCase):
         self.assertEqual('test', args.output_path)
 
     def test_parse_args_long(self):
-        with mock.patch.object(sys, 'argv', ['', 'current', '--distro',
-                                             'centos7', '--branch',
+        with mock.patch.object(sys, 'argv', ['', 'current-passed-ci',
+                                             '--distro', 'centos7', '--branch',
                                              'mitaka', '--output-path',
                                              'test']):
             args = main._parse_args()
-        self.assertEqual(['current'], args.repos)
+        self.assertEqual(['current-passed-ci'], args.repos)
         self.assertEqual('centos7', args.distro)
         self.assertEqual('mitaka', args.branch)
         self.assertEqual('test', args.output_path)
@@ -332,6 +350,11 @@ class TestValidate(testtools.TestCase):
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
+    def test_current_passed_ci_and_tripleo_dev(self):
+        self.args.repos = ['current-passed-ci', 'current-tripleo-dev']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
     def test_ceph_and_tripleo_dev(self):
         self.args.repos = ['current-tripleo-dev', 'ceph']
         self.args.output_path = main.DEFAULT_OUTPUT_PATH
@@ -350,6 +373,17 @@ class TestValidate(testtools.TestCase):
 
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    # FIXME(bogdando) shall it fail or not?
+    """def test_current_passed_ci_and_tripleo(self):
+        self.args.repos = ['current-passed-ci', 'current-tripleo']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)"""
+
+    def test_current_and_current_passed_ci(self):
+        self.args.repos = ['current', 'current-passed-ci']
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
