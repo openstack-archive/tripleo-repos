@@ -102,7 +102,7 @@ def _validate_args(args):
             ('current' in args.repos or 'current-tripleo' in args.repos or
              'deps' in args.repos)):
         raise InvalidArguments('current-tripleo-dev should not be used with '
-                               'any other dlrn repos.')
+                               'any other RDO Trunk repos.')
     if args.branch != 'master' and ('current-tripleo-dev' in args.repos or
                                     'current-tripleo' in args.repos):
         raise InvalidArguments('Cannot use current-tripleo on any branch '

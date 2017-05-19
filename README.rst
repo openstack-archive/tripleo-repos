@@ -1,11 +1,11 @@
 tripleo-repos
 =============
 
-A tool for managing tripleo repos from places like dlrn and Ceph.
+A tool for managing tripleo repos from places like RDO Trunk and Ceph.
 
-See: https://github.com/openstack-packages/DLRN
+See: https://www.rdoproject.org/blog/2016/05/newbie-in-rdo-2-rdo-trunk-from-a-bird-s-eye-view/
 
-Also ensures yum-plugin-priorities is installed since the dlrn repos
+Also ensures yum-plugin-priorities is installed since the RDO Trunk repos
 require that to work sanely.
 
 .. note:: The tool will remove any delorean* repos at the target location
@@ -14,11 +14,11 @@ require that to work sanely.
 
 Examples
 --------
-Install current master dlrn repo and the deps repo::
+Install current master RDO Trunk repo and the deps repo::
 
     tripleo-repos current
 
-Install current-tripleo dlrn repo and the deps repo::
+Install current-tripleo RDO Trunk repo and the deps repo::
 
     tripleo-repos current-tripleo
 
@@ -27,7 +27,7 @@ and will adjust the priorities of each repo appropriately::
 
     tripleo-repos current-tripleo-dev
 
-Install the mitaka dlrn repo and deps::
+Install the mitaka RDO Trunk repo and deps::
 
     tripleo-repos -b mitaka current
 
