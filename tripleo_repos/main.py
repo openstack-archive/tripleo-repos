@@ -26,13 +26,12 @@ TITLE_RE = re.compile('\[(.*)\]')
 PRIORITY_RE = re.compile('priority=\d+')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
-                'os-apply-config,os-cloud-config,os-collect-config,'
-                'os-net-config,os-refresh-config,python-tripleoclient,'
-                'openstack-tripleo-common,openstack-tripleo-heat-templates,'
+                'os-apply-config,os-collect-config,os-net-config,'
+                'os-refresh-config,python-tripleoclient,'
+                'openstack-tripleo-common*,openstack-tripleo-heat-templates,'
                 'openstack-tripleo-image-elements,openstack-tripleo,'
                 'openstack-tripleo-puppet-elements,openstack-puppet-modules,'
-                'dib-utils,openstack-tripleo-ui,puppet-*'
-                )
+                'openstack-tripleo-ui,puppet-*')
 OPSTOOLS_REPO_URL = ('https://raw.githubusercontent.com/centos-opstools/'
                      'opstools-repo/master/opstools.repo')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
