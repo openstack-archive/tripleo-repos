@@ -8,8 +8,7 @@ cover
 
 # Packages
 .eggs
-*.egg
-*.egg-info
+*.egg*
 dist
 build
 eggs
