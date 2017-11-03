@@ -30,9 +30,21 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'os-refresh-config,python-tripleoclient,'
                 'openstack-tripleo-*,openstack-puppet-modules,'
                 'puppet-*')
-OPSTOOLS_REPO_URL = ('https://raw.githubusercontent.com/centos-opstools/'
-                     'opstools-repo/master/opstools.repo')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
+CEPH_REPO_TEMPLATE = '''
+[tripleo-centos-ceph-%(ceph_release)s]
+name=tripleo-centos-ceph-%(ceph_release)s
+baseurl=%(centos_mirror)s/centos/7/storage/x86_64/ceph-%(ceph_release)s/
+gpgcheck=0
+enabled=1
+'''
+OPSTOOLS_REPO_TEMPLATE = '''
+[tripleo-centos-opstools]
+name=tripleo-centos-opstools
+baseurl=%s/centos/7/opstools/x86_64/
+gpgcheck=0
+enabled=1
+'''
 
 
 class InvalidArguments(Exception):
@@ -72,6 +84,10 @@ def _parse_args():
     parser.add_argument('-o', '--output-path',
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
+    parser.add_argument('--centos-mirror',
+                        default='http://mirror.centos.org',
+                        help='Server from which to install base CentOS '
+                             'packages.')
     return parser.parse_args()
 
 
@@ -109,15 +125,13 @@ def _validate_args(args):
                                'same time.')
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
-    if 'ceph' in args.repos and args.output_path != DEFAULT_OUTPUT_PATH:
-        raise InvalidArguments('The Ceph repo is installed from a package and '
-                               'cannot be installed to a custom location.')
 
 
 def _remove_existing(args):
     """Remove any delorean* or opstools repos that already exist"""
     for f in os.listdir(args.output_path):
-        if f.startswith('delorean') or f == 'centos-opstools.repo':
+        if (f.startswith('delorean') or f == 'tripleo-centos-opstools.repo' or
+                f.startswith('tripleo-centos-ceph')):
             filename = os.path.join(args.output_path, f)
             os.remove(filename)
             print('Removed old repo "%s"' % filename)
@@ -140,28 +154,10 @@ def _install_priorities():
         raise
 
 
-def _install_ceph(release):
-    """Install the Ceph repo specified by release"""
-    # Make sure we're starting with a clean slate
-    try:
-        print('Cleaning up existing ceph repos')
-        subprocess.check_call(['yum', 'remove', '-y', 'centos-release-ceph-*'])
-    except subprocess.CalledProcessError:
-        print('ERROR: Failed to clean up ceph release package')
-        raise
-
-    pkg_name = 'centos-release-ceph-%s' % release
-    try:
-        subprocess.check_call(['yum', 'install', '-y', '--enablerepo=extras',
-                               pkg_name])
-    except subprocess.CalledProcessError:
-        print('ERROR: Failed to install %s.' % pkg_name)
-        raise
-    subprocess.check_call(['sed', '-i', '-e',
-                           's/gpgcheck=.*/gpgcheck=0/',
-                           '/etc/yum.repos.d/CentOS-Ceph-%s.repo' %
-                           release.title()])
-    print('Installed repo for Ceph release %s' % release)
+def _create_ceph(args, release):
+    """Generate a Ceph repo file for release"""
+    return CEPH_REPO_TEMPLATE % {'ceph_release': release,
+                                 'centos_mirror': args.centos_mirror}
 
 
 def _change_priority(content, new_priority):
@@ -210,11 +206,12 @@ def _install_repos(args, base_path):
             _write_repo(content, args.output_path)
         elif repo == 'ceph':
             if args.branch in ['liberty', 'mitaka']:
-                _install_ceph('hammer')
+                content = _create_ceph(args, 'hammer')
             else:
-                _install_ceph('jewel')
+                content = _create_ceph(args, 'jewel')
+            _write_repo(content, args.output_path)
         elif repo == 'opstools':
-            content = _get_repo(OPSTOOLS_REPO_URL)
+            content = OPSTOOLS_REPO_TEMPLATE % args.centos_mirror
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)

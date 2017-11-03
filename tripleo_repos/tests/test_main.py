@@ -66,7 +66,8 @@ class TestTripleORepos(testtools.TestCase):
     @mock.patch('os.remove')
     def test_remove_existing(self, mock_remove, mock_listdir):
         fake_list = ['foo.repo', 'delorean.repo',
-                     'delorean-current-tripleo.repo', 'centos-opstools.repo']
+                     'delorean-current-tripleo.repo',
+                     'tripleo-centos-opstools.repo']
         mock_listdir.return_value = fake_list
         mock_args = mock.Mock()
         mock_args.output_path = '/etc/yum.repos.d'
@@ -76,8 +77,9 @@ class TestTripleORepos(testtools.TestCase):
         self.assertIn(mock.call('/etc/yum.repos.d/'
                                 'delorean-current-tripleo.repo'),
                       mock_remove.mock_calls)
-        self.assertIn(mock.call('/etc/yum.repos.d/centos-opstools.repo'),
-                      mock_remove.mock_calls)
+        self.assertIn(
+            mock.call('/etc/yum.repos.d/tripleo-centos-opstools.repo'),
+            mock_remove.mock_calls)
         self.assertNotIn(mock.call('/etc/yum.repos.d/foo.repo'),
                          mock_remove.mock_calls)
 
@@ -200,35 +202,47 @@ class TestTripleORepos(testtools.TestCase):
                                       'priority=10' %
                                       main.INCLUDE_PKGS, 'test')
 
-    @mock.patch('tripleo_repos.main._install_ceph')
-    def test_install_repos_ceph(self, mock_install_ceph):
+    @mock.patch('tripleo_repos.main._write_repo')
+    @mock.patch('tripleo_repos.main._create_ceph')
+    def test_install_repos_ceph(self, mock_create_ceph, mock_write_repo):
         args = mock.Mock()
         args.repos = ['ceph']
         args.branch = 'master'
         args.output_path = 'test'
+        mock_repo = '[centos-ceph-jewel]\nMr. Fusion'
+        mock_create_ceph.return_value = mock_repo
         main._install_repos(args, 'roads/')
-        mock_install_ceph.assert_called_with('jewel')
+        mock_create_ceph.assert_called_once_with(args, 'jewel')
+        mock_write_repo.assert_called_once_with(mock_repo, 'test')
 
-    @mock.patch('tripleo_repos.main._install_ceph')
-    def test_install_repos_ceph_mitaka(self, mock_install_ceph):
+    @mock.patch('tripleo_repos.main._write_repo')
+    @mock.patch('tripleo_repos.main._create_ceph')
+    def test_install_repos_ceph_mitaka(self, mock_create_ceph,
+                                       mock_write_repo):
         args = mock.Mock()
         args.repos = ['ceph']
         args.branch = 'mitaka'
         args.output_path = 'test'
+        mock_repo = '[centos-ceph-hammer]\nMr. Fusion'
+        mock_create_ceph.return_value = mock_repo
         main._install_repos(args, 'roads/')
-        mock_install_ceph.assert_called_with('hammer')
+        mock_create_ceph.assert_called_once_with(args, 'hammer')
+        mock_write_repo.assert_called_once_with(mock_repo, 'test')
 
-    @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
-    def test_install_repos_opstools(self, mock_write, mock_get):
+    def test_install_repos_opstools(self, mock_write):
         args = mock.Mock()
         args.repos = ['opstools']
         args.branch = 'master'
         args.output_path = 'test'
-        mock_get.return_value = '[centos-opstools]\nMr. Fusion'
+        args.centos_mirror = 'http://foo'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with(main.OPSTOOLS_REPO_URL)
-        mock_write.assert_called_once_with('[centos-opstools]\nMr. Fusion',
+        expected_repo = ('\n[tripleo-centos-opstools]\n'
+                         'name=tripleo-centos-opstools\n'
+                         'baseurl=http://foo/centos/7/opstools/x86_64/\n'
+                         'gpgcheck=0\n'
+                         'enabled=1\n')
+        mock_write.assert_called_once_with(expected_repo,
                                            'test')
 
     def test_install_repos_invalid(self):
@@ -277,43 +291,17 @@ class TestTripleORepos(testtools.TestCase):
         result = main._change_priority('[delorean]', 10)
         self.assertEqual('[delorean]\npriority=10', result)
 
-    @mock.patch('subprocess.check_call')
-    def test_install_ceph(self, mock_check_call):
-        main._install_ceph('jewel')
-        self.assertEqual([mock.call(['yum', 'remove', '-y',
-                                     'centos-release-ceph-*']),
-                          mock.call(['yum', 'install', '-y',
-                                     '--enablerepo=extras',
-                                     'centos-release-ceph-jewel']),
-                          mock.call(['sed', '-i', '-e',
-                                     's/gpgcheck=.*/gpgcheck=0/',
-                                     '/etc/yum.repos.d/CentOS-Ceph-Jewel.repo'
-                                     ])
-                          ],
-                         mock_check_call.mock_calls)
-
-    @mock.patch('subprocess.check_call')
-    def test_install_ceph_fail1(self, mock_check_call):
-        mock_check_call.side_effect = [subprocess.CalledProcessError(1, 'Foo'),
-                                       0, 0]
-        self.assertRaises(subprocess.CalledProcessError,
-                          main._install_ceph, 'jewel')
-
-    @mock.patch('subprocess.check_call')
-    def test_install_ceph_fail2(self, mock_check_call):
-        mock_check_call.side_effect = [0,
-                                       subprocess.CalledProcessError(1, 'Foo'),
-                                       0]
-        self.assertRaises(subprocess.CalledProcessError,
-                          main._install_ceph, 'jewel')
-
-    @mock.patch('subprocess.check_call')
-    def test_install_ceph_fail3(self, mock_check_call):
-        mock_check_call.side_effect = [0, 0,
-                                       subprocess.CalledProcessError(1, 'Foo')
-                                       ]
-        self.assertRaises(subprocess.CalledProcessError,
-                          main._install_ceph, 'jewel')
+    def test_create_ceph(self):
+        mock_args = mock.Mock(centos_mirror='http://foo')
+        result = main._create_ceph(mock_args, 'jewel')
+        expected_repo = '''
+[tripleo-centos-ceph-jewel]
+name=tripleo-centos-ceph-jewel
+baseurl=http://foo/centos/7/storage/x86_64/ceph-jewel/
+gpgcheck=0
+enabled=1
+'''
+        self.assertEqual(expected_repo, result)
 
 
 class TestValidate(testtools.TestCase):
@@ -365,11 +353,5 @@ class TestValidate(testtools.TestCase):
 
     def test_invalid_distro(self):
         self.args.distro = 'Jigawatts 1.21'
-        self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args)
-
-    def test_ceph_output_path(self):
-        self.args.repos = ['ceph']
-        self.args.output_path = 'foo'
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
