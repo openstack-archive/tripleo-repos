@@ -48,7 +48,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_response.text = '88MPH'
         mock_get.return_value = mock_response
         fake_addr = 'http://lone/pine/mall'
-        content = main._get_repo(fake_addr)
+        content = main._get_repo(fake_addr, mock.Mock())
         self.assertEqual('88MPH', content)
         mock_get.assert_called_once_with(fake_addr)
 
@@ -58,7 +58,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_response.status_code = 404
         mock_get.return_value = mock_response
         fake_addr = 'http://twin/pines/mall'
-        main._get_repo(fake_addr)
+        main._get_repo(fake_addr, mock.Mock())
         mock_get.assert_called_once_with(fake_addr)
         mock_response.raise_for_status.assert_called_once_with()
 
@@ -87,6 +87,7 @@ class TestTripleORepos(testtools.TestCase):
         args = mock.Mock()
         args.branch = 'master'
         args.distro = 'centos7'
+        args.rdo_mirror = 'http://trunk.rdoproject.org'
         path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/centos7/', path)
 
@@ -94,6 +95,7 @@ class TestTripleORepos(testtools.TestCase):
         args = mock.Mock()
         args.branch = 'liberty'
         args.distro = 'centos7'
+        args.rdo_mirror = 'http://trunk.rdoproject.org'
         path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/centos7-liberty/', path)
 
@@ -118,8 +120,8 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        self.assertEqual([mock.call('roads/current/delorean.repo'),
-                          mock.call('roads/delorean-deps.repo'),
+        self.assertEqual([mock.call('roads/current/delorean.repo', args),
+                          mock.call('roads/delorean-deps.repo', args),
                           ],
                          mock_get.mock_calls)
         self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
@@ -136,8 +138,8 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        self.assertEqual([mock.call('roads/current/delorean.repo'),
-                          mock.call('roads/delorean-deps.repo'),
+        self.assertEqual([mock.call('roads/current/delorean.repo', args),
+                          mock.call('roads/delorean-deps.repo', args),
                           ],
                          mock_get.mock_calls)
         self.assertEqual([mock.call('[delorean-mitaka]\nMr. Fusion', 'test'),
@@ -154,7 +156,7 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean-deps]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_called_once_with('roads/delorean-deps.repo')
+        mock_get.assert_called_once_with('roads/delorean-deps.repo', args)
         mock_write.assert_called_once_with('[delorean-deps]\nMr. Fusion',
                                            'test')
 
@@ -167,10 +169,9 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        self.assertEqual([mock.call('http://buildlogs.centos.org/centos/'
-                                    '7/cloud/x86_64/rdo-trunk-master-'
-                                    'tripleo/delorean.repo'),
-                          mock.call('roads/delorean-deps.repo'),
+        self.assertEqual([mock.call('roads/current-tripleo/delorean.repo',
+                                    args),
+                          mock.call('roads/delorean-deps.repo', args),
                           ],
                          mock_get.mock_calls)
         self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
@@ -187,17 +188,15 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
-        mock_get.assert_any_call('roads/delorean-deps.repo')
+        mock_get.assert_any_call('roads/delorean-deps.repo', args)
         # This is the wrong name for the deps repo, but I'm not bothered
         # enough by that to mess with mocking multiple different calls.
         mock_write.assert_any_call('[delorean]\n'
                                    'Mr. Fusion', 'test')
-        mock_get.assert_any_call('http://buildlogs.centos.org/centos/'
-                                 '7/cloud/x86_64/rdo-trunk-master-'
-                                 'tripleo/delorean.repo')
+        mock_get.assert_any_call('roads/current-tripleo/delorean.repo', args)
         mock_write.assert_any_call('[delorean-current-tripleo]\n'
                                    'Mr. Fusion\npriority=20', 'test')
-        mock_get.assert_called_with('roads/current/delorean.repo')
+        mock_get.assert_called_with('roads/current/delorean.repo', args)
         mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s\n'
                                       'priority=10' %
                                       main.INCLUDE_PKGS, 'test')
@@ -242,6 +241,44 @@ class TestTripleORepos(testtools.TestCase):
                          'baseurl=http://foo/centos/7/opstools/x86_64/\n'
                          'gpgcheck=0\n'
                          'enabled=1\n')
+        mock_write.assert_called_once_with(expected_repo,
+                                           'test')
+
+    @mock.patch('requests.get')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_deps_mirror(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['deps']
+        args.branch = 'master'
+        args.output_path = 'test'
+        args.centos_mirror = 'http://foo'
+        args.rdo_mirror = 'http://bar'
+        # Abbrevieated repos to verify the regex works
+        fake_repo = '''
+[delorean-current-tripleo]
+name=test repo
+baseurl=https://trunk.rdoproject.org/centos7/some-repo-hash
+enabled=1
+
+[rdo-qemu-ev]
+name=test qemu-ev
+baseurl=http://mirror.centos.org/centos/7/virt/$basearch/kvm-common
+enabled=1
+'''
+        expected_repo = '''
+[delorean-current-tripleo]
+name=test repo
+baseurl=http://bar/centos7/some-repo-hash
+enabled=1
+
+[rdo-qemu-ev]
+name=test qemu-ev
+baseurl=http://foo/centos/7/virt/$basearch/kvm-common
+enabled=1
+'''
+        mock_get.return_value = mock.Mock(text=fake_repo,
+                                          status_code=200)
+        main._install_repos(args, 'roads/')
         mock_write.assert_called_once_with(expected_repo,
                                            'test')
 
@@ -302,6 +339,45 @@ gpgcheck=0
 enabled=1
 '''
         self.assertEqual(expected_repo, result)
+
+    def test_inject_mirrors(self):
+        start_repo = '''
+[delorean]
+name=delorean
+baseurl=https://trunk.rdoproject.org/centos7/some-repo-hash
+enabled=1
+[centos]
+name=centos
+baseurl=http://mirror.centos.org/centos/7/virt/$basearch/kvm-common
+enabled=1
+'''
+        expected = '''
+[delorean]
+name=delorean
+baseurl=http://bar/centos7/some-repo-hash
+enabled=1
+[centos]
+name=centos
+baseurl=http://foo/centos/7/virt/$basearch/kvm-common
+enabled=1
+'''
+        mock_args = mock.Mock(centos_mirror='http://foo',
+                              rdo_mirror='http://bar')
+        result = main._inject_mirrors(start_repo, mock_args)
+        self.assertEqual(expected, result)
+
+    def test_inject_mirrors_no_match(self):
+        start_repo = '''
+[delorean]
+name=delorean
+baseurl=https://some.mirror.com/centos7/some-repo-hash
+enabled=1
+'''
+        mock_args = mock.Mock(rdo_mirror='http://some.mirror.com')
+        # If a user has a mirror whose repos already point at itself then
+        # the _inject_mirrors call should be a noop.
+        self.assertEqual(start_repo, main._inject_mirrors(start_repo,
+                                                          mock_args))
 
 
 class TestValidate(testtools.TestCase):

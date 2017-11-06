@@ -31,6 +31,10 @@ INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
                 'openstack-tripleo-*,openstack-puppet-modules,'
                 'puppet-*')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
+DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
+RDO_RE = re.compile('baseurl=%s' % DEFAULT_RDO_MIRROR)
+DEFAULT_CENTOS_MIRROR = 'http://mirror.centos.org'
+CENTOS_RE = re.compile('baseurl=%s' % DEFAULT_CENTOS_MIRROR)
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
 name=tripleo-centos-ceph-%(ceph_release)s
@@ -85,16 +89,19 @@ def _parse_args():
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
     parser.add_argument('--centos-mirror',
-                        default='http://mirror.centos.org',
+                        default=DEFAULT_CENTOS_MIRROR,
                         help='Server from which to install base CentOS '
                              'packages.')
+    parser.add_argument('--rdo-mirror',
+                        default=DEFAULT_RDO_MIRROR,
+                        help='Server from which to install RDO packages.')
     return parser.parse_args()
 
 
-def _get_repo(path):
+def _get_repo(path, args):
     r = requests.get(path)
     if r.status_code == 200:
-        return r.text
+        return _inject_mirrors(r.text, args)
     else:
         r.raise_for_status()
 
@@ -142,7 +149,7 @@ def _get_base_path(args):
         distro_branch = '%s-%s' % (args.distro, args.branch)
     else:
         distro_branch = args.distro
-    return 'http://trunk.rdoproject.org/%s/' % distro_branch
+    return '%s/%s/' % (args.rdo_mirror, distro_branch)
 
 
 def _install_priorities():
@@ -168,19 +175,27 @@ def _change_priority(content, new_priority):
     return new_content
 
 
-def _install_repos(args, base_path):
-    # NOTE(bnemec): If/when we support a distro other than centos7 we'll need
-    # a way to handle setting this appropriately.
-    current_tripleo_repo = ('http://buildlogs.centos.org/centos/7/cloud/x86_64'
-                            '/rdo-trunk-master-tripleo/delorean.repo')
+def _inject_mirrors(content, args):
+    """Replace any references to the default mirrors in repo content
 
+    In some cases we want to use mirrors whose repo files still point to the
+    default servers.  If the user specified to use the mirror, we want to
+    replace any such references with the mirror address.  This function
+    handles that by using a regex to swap out the baseurl server.
+    """
+    new_content = RDO_RE.sub('baseurl=%s' % args.rdo_mirror, content)
+    new_content = CENTOS_RE.sub('baseurl=%s' % args.centos_mirror, new_content)
+    return new_content
+
+
+def _install_repos(args, base_path):
     def install_deps(args, base_path):
-        content = _get_repo(base_path + 'delorean-deps.repo')
+        content = _get_repo(base_path + 'delorean-deps.repo', args)
         _write_repo(content, args.output_path)
 
     for repo in args.repos:
         if repo == 'current':
-            content = _get_repo(base_path + 'current/delorean.repo')
+            content = _get_repo(base_path + 'current/delorean.repo', args)
             if args.branch != 'master':
                 content = TITLE_RE.sub('[delorean-%s]' % args.branch, content)
             _write_repo(content, args.output_path)
@@ -188,19 +203,21 @@ def _install_repos(args, base_path):
         elif repo == 'deps':
             install_deps(args, base_path)
         elif repo == 'current-tripleo':
-            content = _get_repo(current_tripleo_repo)
+            content = _get_repo(base_path + 'current-tripleo/delorean.repo',
+                                args)
             _write_repo(content, args.output_path)
             install_deps(args, base_path)
         elif repo == 'current-tripleo-dev':
-            content = _get_repo(base_path + 'delorean-deps.repo')
+            content = _get_repo(base_path + 'delorean-deps.repo', args)
             _write_repo(content, args.output_path)
-            content = _get_repo(current_tripleo_repo)
+            content = _get_repo(base_path + 'current-tripleo/delorean.repo',
+                                args)
             content = TITLE_RE.sub('[delorean-current-tripleo]', content)
             # We need to twiddle priorities since we're mixing multiple repos
             # that are generated with the same priority.
             content = _change_priority(content, 20)
             _write_repo(content, args.output_path)
-            content = _get_repo(base_path + 'current/delorean.repo')
+            content = _get_repo(base_path + 'current/delorean.repo', args)
             content += '\n%s' % INCLUDE_PKGS
             content = _change_priority(content, 10)
             _write_repo(content, args.output_path)
