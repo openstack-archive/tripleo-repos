@@ -208,10 +208,10 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['ceph']
         args.branch = 'master'
         args.output_path = 'test'
-        mock_repo = '[centos-ceph-jewel]\nMr. Fusion'
+        mock_repo = '[centos-ceph-luminous]\nMr. Fusion'
         mock_create_ceph.return_value = mock_repo
         main._install_repos(args, 'roads/')
-        mock_create_ceph.assert_called_once_with(args, 'jewel')
+        mock_create_ceph.assert_called_once_with(args, 'luminous')
         mock_write_repo.assert_called_once_with(mock_repo, 'test')
 
     @mock.patch('tripleo_repos.main._write_repo')

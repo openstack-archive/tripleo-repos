@@ -224,8 +224,10 @@ def _install_repos(args, base_path):
         elif repo == 'ceph':
             if args.branch in ['liberty', 'mitaka']:
                 content = _create_ceph(args, 'hammer')
-            else:
+            elif args.branch in ['newton', 'ocata']:
                 content = _create_ceph(args, 'jewel')
+            else:
+                content = _create_ceph(args, 'luminous')
             _write_repo(content, args.output_path)
         elif repo == 'opstools':
             content = OPSTOOLS_REPO_TEMPLATE % args.centos_mirror
