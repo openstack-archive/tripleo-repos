@@ -224,7 +224,7 @@ def _install_repos(args, base_path):
         elif repo == 'ceph':
             if args.branch in ['liberty', 'mitaka']:
                 content = _create_ceph(args, 'hammer')
-            elif args.branch in ['newton', 'ocata']:
+            elif args.branch in ['newton', 'ocata', 'pike']:
                 content = _create_ceph(args, 'jewel')
             else:
                 content = _create_ceph(args, 'luminous')
