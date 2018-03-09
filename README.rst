@@ -3,7 +3,7 @@ tripleo-repos
 
 A tool for managing tripleo repos from places like RDO Trunk and Ceph.
 
-See: https://www.rdoproject.org/blog/2016/05/newbie-in-rdo-2-rdo-trunk-from-a-bird-s-eye-view/
+See: https://blogs.rdoproject.org/2016/04/newbie-in-rdo-2-rdo-trunk-from-a-bird-s-eye-view/
 
 Also ensures yum-plugin-priorities is installed since the RDO Trunk repos
 require that to work sanely.
