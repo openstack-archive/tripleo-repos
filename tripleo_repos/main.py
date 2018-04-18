@@ -25,7 +25,7 @@ import requests
 TITLE_RE = re.compile('\[(.*)\]')
 PRIORITY_RE = re.compile('priority=\d+')
 # Packages to be included from delorean-current when using current-tripleo
-INCLUDE_PKGS = ('includepkgs=diskimage-builder,instack,instack-undercloud,'
+INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
                 'os-apply-config,os-collect-config,os-net-config,'
                 'os-refresh-config,python-tripleoclient,'
                 'openstack-tripleo-*,openstack-puppet-modules,'
