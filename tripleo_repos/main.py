@@ -29,7 +29,7 @@ INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
                 'os-apply-config,os-collect-config,os-net-config,'
                 'os-refresh-config,python-tripleoclient,'
                 'openstack-tripleo-*,openstack-puppet-modules,'
-                'puppet-*')
+                'puppet-*,python*-tripleo-common')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
 DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
 RDO_RE = re.compile('baseurl=%s' % DEFAULT_RDO_MIRROR)
