@@ -5,6 +5,7 @@
 cover
 .tox
 .testrepository
+.stestr/
 
 # Packages
 .eggs
