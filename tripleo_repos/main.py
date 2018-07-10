@@ -236,6 +236,14 @@ def _install_repos(args, base_path):
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 
 
+def _run_yum_clean():
+    try:
+        subprocess.check_call(['yum', 'clean', 'metadata'])
+    except subprocess.CalledProcessError:
+        print('ERROR: Failed to clean yum metadata.')
+        raise
+
+
 def main():
     args = _parse_args()
     _validate_args(args)
@@ -243,6 +251,7 @@ def main():
     _install_priorities()
     _remove_existing(args)
     _install_repos(args, base_path)
+    _run_yum_clean()
 
 
 if __name__ == '__main__':

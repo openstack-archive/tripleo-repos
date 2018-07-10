@@ -22,6 +22,7 @@ from tripleo_repos import main
 
 
 class TestTripleORepos(testtools.TestCase):
+    @mock.patch('tripleo_repos.main._run_yum_clean')
     @mock.patch('tripleo_repos.main._parse_args')
     @mock.patch('tripleo_repos.main._validate_args')
     @mock.patch('tripleo_repos.main._get_base_path')
@@ -29,7 +30,7 @@ class TestTripleORepos(testtools.TestCase):
     @mock.patch('tripleo_repos.main._remove_existing')
     @mock.patch('tripleo_repos.main._install_repos')
     def test_main(self, mock_install, mock_remove, mock_ip, mock_gbp,
-                  mock_validate, mock_parse):
+                  mock_validate, mock_parse, mock_clean):
         mock_args = mock.Mock()
         mock_parse.return_value = mock_args
         mock_path = mock.Mock()
@@ -40,6 +41,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_ip.assert_called_once_with()
         mock_remove.assert_called_once_with(mock_args)
         mock_install.assert_called_once_with(mock_args, mock_path)
+        mock_clean.assert_called_once_with()
 
     @mock.patch('requests.get')
     def test_get_repo(self, mock_get):
@@ -378,6 +380,17 @@ enabled=1
         # the _inject_mirrors call should be a noop.
         self.assertEqual(start_repo, main._inject_mirrors(start_repo,
                                                           mock_args))
+
+    @mock.patch('subprocess.check_call')
+    def test_run_yum_clean(self, mock_check_call):
+        main._run_yum_clean()
+        mock_check_call.assert_called_once_with(['yum', 'clean', 'metadata'])
+
+    @mock.patch('subprocess.check_call')
+    def test_run_yum_clean_fails(self, mock_check_call):
+        mock_check_call.side_effect = subprocess.CalledProcessError(88, '88')
+        self.assertRaises(subprocess.CalledProcessError,
+                          main._run_yum_clean)
 
 
 class TestValidate(testtools.TestCase):
