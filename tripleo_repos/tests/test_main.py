@@ -22,26 +22,45 @@ from tripleo_repos import main
 
 
 class TestTripleORepos(testtools.TestCase):
-    @mock.patch('tripleo_repos.main._run_yum_clean')
-    @mock.patch('tripleo_repos.main._parse_args')
+    @mock.patch('sys.argv', ['tripleo-repos', 'current'])
+    @mock.patch('tripleo_repos.main._run_pkg_clean')
     @mock.patch('tripleo_repos.main._validate_args')
     @mock.patch('tripleo_repos.main._get_base_path')
     @mock.patch('tripleo_repos.main._install_priorities')
     @mock.patch('tripleo_repos.main._remove_existing')
     @mock.patch('tripleo_repos.main._install_repos')
     def test_main(self, mock_install, mock_remove, mock_ip, mock_gbp,
-                  mock_validate, mock_parse, mock_clean):
-        mock_args = mock.Mock()
-        mock_parse.return_value = mock_args
+                  mock_validate, mock_clean):
+        args = main._parse_args()
         mock_path = mock.Mock()
         mock_gbp.return_value = mock_path
         main.main()
-        mock_validate.assert_called_once_with(mock_args)
-        mock_gbp.assert_called_once_with(mock_args)
+        mock_validate.assert_called_once_with(args)
+        mock_gbp.assert_called_once_with(args)
         mock_ip.assert_called_once_with()
-        mock_remove.assert_called_once_with(mock_args)
-        mock_install.assert_called_once_with(mock_args, mock_path)
-        mock_clean.assert_called_once_with()
+        mock_remove.assert_called_once_with(args)
+        mock_install.assert_called_once_with(args, mock_path)
+        mock_clean.assert_called_once_with('centos7')
+
+    @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'fedora'])
+    @mock.patch('tripleo_repos.main._run_pkg_clean')
+    @mock.patch('tripleo_repos.main._validate_args')
+    @mock.patch('tripleo_repos.main._get_base_path')
+    @mock.patch('tripleo_repos.main._install_priorities')
+    @mock.patch('tripleo_repos.main._remove_existing')
+    @mock.patch('tripleo_repos.main._install_repos')
+    def test_main_fedora(self, mock_install, mock_remove, mock_ip, mock_gbp,
+                         mock_validate, mock_clean):
+        args = main._parse_args()
+        mock_path = mock.Mock()
+        mock_gbp.return_value = mock_path
+        main.main()
+        mock_validate.assert_called_once_with(args)
+        mock_gbp.assert_called_once_with(args)
+        assert not mock_ip.called, '_install_priorities should no tbe called'
+        mock_remove.assert_called_once_with(args)
+        mock_install.assert_called_once_with(args, mock_path)
+        mock_clean.assert_called_once_with('fedora')
 
     @mock.patch('requests.get')
     def test_get_repo(self, mock_get):
@@ -100,6 +119,20 @@ class TestTripleORepos(testtools.TestCase):
         args.rdo_mirror = 'http://trunk.rdoproject.org'
         path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/centos7-liberty/', path)
+
+    def test_get_base_path_fedora(self):
+        args = mock.Mock()
+        args.branch = 'master'
+        args.distro = 'fedora'
+        args.rdo_mirror = 'http://trunk.rdoproject.org'
+        path = main._get_base_path(args)
+        self.assertEqual('http://trunk.rdoproject.org/fedora/', path)
+
+    def test_get_base_path_fedora_branch(self):
+        args = mock.Mock()
+        args.branch = 'rocky'
+        args.distro = 'fedora'
+        self.assertRaises(main.InvalidArguments, main._get_base_path, args)
 
     @mock.patch('subprocess.check_call')
     def test_install_priorities(self, mock_check_call):
@@ -382,15 +415,20 @@ enabled=1
                                                           mock_args))
 
     @mock.patch('subprocess.check_call')
-    def test_run_yum_clean(self, mock_check_call):
-        main._run_yum_clean()
+    def test_run_pkg_clean(self, mock_check_call):
+        main._run_pkg_clean('centos7')
         mock_check_call.assert_called_once_with(['yum', 'clean', 'metadata'])
 
     @mock.patch('subprocess.check_call')
-    def test_run_yum_clean_fails(self, mock_check_call):
+    def test_run_pkg_clean_fedora(self, mock_check_call):
+        main._run_pkg_clean('fedora')
+        mock_check_call.assert_called_once_with(['dnf', 'clean', 'metadata'])
+
+    @mock.patch('subprocess.check_call')
+    def test_run_pkg_clean_fails(self, mock_check_call):
         mock_check_call.side_effect = subprocess.CalledProcessError(88, '88')
         self.assertRaises(subprocess.CalledProcessError,
-                          main._run_yum_clean)
+                          main._run_pkg_clean, ['centos7'])
 
 
 class TestValidate(testtools.TestCase):
@@ -443,4 +481,13 @@ class TestValidate(testtools.TestCase):
     def test_invalid_distro(self):
         self.args.distro = 'Jigawatts 1.21'
         self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    def test_validate_distro_repos(self):
+        self.assertTrue(main._validate_distro_repos(self.args))
+
+    def test_validate_distro_repos_fedora_tripleo_dev(self):
+        self.args.distro = 'fedora'
+        self.args.repos = ['current-tripleo-dev']
+        self.assertRaises(main.InvalidArguments, main._validate_distro_repos,
                           self.args)

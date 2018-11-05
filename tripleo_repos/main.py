@@ -117,6 +117,21 @@ def _write_repo(content, target):
     print('Installed repo %s to %s' % (m.group(1), filename))
 
 
+def _validate_distro_repos(args):
+    """Validate requested repos are valid for the distro"""
+    if args.distro in ['fedora']:
+        valid_repos = ['current', 'ceph', 'deps']
+    elif args.distro in ['centos7']:
+        valid_repos = ['ceph', 'current', 'current-tripleo',
+                       'current-tripleo-dev', 'deps']
+    invalid_repos = [x for x in args.repos if x not in valid_repos]
+    if len(invalid_repos) > 0:
+        raise InvalidArguments('{} repo(s) are not valid for {}. Valid repos '
+                               'are: {}'.format(invalid_repos, args.distro,
+                                                valid_repos))
+    return True
+
+
 def _validate_current_tripleo(repos):
     """Validate current usage
 
@@ -151,8 +166,10 @@ def _validate_branch_repos(branch, repos):
 def _validate_args(args):
     _validate_current_tripleo(args.repos)
     _validate_branch_repos(args.branch, args.repos)
-    if args.distro != 'centos7':
-        raise InvalidArguments('centos7 is the only supported distro')
+    if args.distro not in ['centos7', 'fedora']:
+        raise InvalidArguments('centos7 or fedora is the only supported '
+                               'distros at this time')
+    _validate_distro_repos(args)
 
 
 def _remove_existing(args):
@@ -167,6 +184,8 @@ def _remove_existing(args):
 
 def _get_base_path(args):
     if args.branch != 'master':
+        if args.distro not in ['centos7']:
+            raise InvalidArguments('Branches only suppported with centos7')
         distro_branch = '%s-%s' % (args.distro, args.branch)
     else:
         distro_branch = args.distro
@@ -257,9 +276,10 @@ def _install_repos(args, base_path):
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
 
 
-def _run_yum_clean():
+def _run_pkg_clean(distro):
+    pkg_mgr = 'yum' if distro == 'centos7' else 'dnf'
     try:
-        subprocess.check_call(['yum', 'clean', 'metadata'])
+        subprocess.check_call([pkg_mgr, 'clean', 'metadata'])
     except subprocess.CalledProcessError:
         print('ERROR: Failed to clean yum metadata.')
         raise
@@ -269,10 +289,11 @@ def main():
     args = _parse_args()
     _validate_args(args)
     base_path = _get_base_path(args)
-    _install_priorities()
+    if args.distro in ['centos7']:
+        _install_priorities()
     _remove_existing(args)
     _install_repos(args, base_path)
-    _run_yum_clean()
+    _run_pkg_clean(args.distro)
 
 
 if __name__ == '__main__':
