@@ -22,8 +22,8 @@ import subprocess
 import requests
 
 
-TITLE_RE = re.compile('\[(.*)\]')
-PRIORITY_RE = re.compile('priority=\d+')
+TITLE_RE = re.compile('\\[(.*)\\]')
+PRIORITY_RE = re.compile('priority=\\d+')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
                 'os-apply-config,os-collect-config,os-net-config,'
@@ -117,28 +117,49 @@ def _write_repo(content, target):
     print('Installed repo %s to %s' % (m.group(1), filename))
 
 
-def _validate_args(args):
-    if ('current-tripleo-dev' in args.repos and
-            ('current' in args.repos or 'current-tripleo' in args.repos or
-             'deps' in args.repos)):
-        raise InvalidArguments('current-tripleo-dev should not be used with '
-                               'any other RDO Trunk repos.')
-    if args.branch != 'master' and ('current-tripleo-dev' in args.repos or
-                                    'current-tripleo' in args.repos):
-        raise InvalidArguments('Cannot use current-tripleo on any branch '
-                               'except master')
-    if 'current-tripleo' in args.repos and 'current' in args.repos:
+def _validate_current_tripleo(repos):
+    """Validate current usage
+
+    current and current-tripleo cannot be specified with each other and
+    current-tripleo-dev is a mix of current, current-tripleo and deps
+    so they should not be specified on the command line with each other.
+    """
+    if 'current-tripleo' in repos and 'current' in repos:
         raise InvalidArguments('Cannot use current and current-tripleo at the '
                                'same time.')
+    if 'current-tripleo-dev' not in repos:
+        return True
+    if 'current' in repos or 'current-tripleo' in repos or 'deps' in repos:
+        raise InvalidArguments('current-tripleo-dev should not be used with '
+                               'any other RDO Trunk repos.')
+    return True
+
+
+def _validate_branch_repos(branch, repos):
+    """Validate branch and repo combinations
+
+    current-tripleo-dev and current-tripleo are master only
+    """
+    if branch == 'master':
+        return True
+    if 'current-tripleo-dev' in repos or 'current-tripleo' in repos:
+        raise InvalidArguments('Cannot use current-tripleo on any branch '
+                               'except master')
+    return True
+
+
+def _validate_args(args):
+    _validate_current_tripleo(args.repos)
+    _validate_branch_repos(args.branch, args.repos)
     if args.distro != 'centos7':
         raise InvalidArguments('centos7 is the only supported distro')
 
 
 def _remove_existing(args):
     """Remove any delorean* or opstools repos that already exist"""
+    pattern = re.compile('^(delorean|tripleo-centos-(opstools|ceph)).*.repo')
     for f in os.listdir(args.output_path):
-        if (f.startswith('delorean') or f == 'tripleo-centos-opstools.repo' or
-                f.startswith('tripleo-centos-ceph')):
+        if pattern.match(f):
             filename = os.path.join(args.output_path, f)
             os.remove(filename)
             print('Removed old repo "%s"' % filename)
