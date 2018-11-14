@@ -150,22 +150,8 @@ def _validate_current_tripleo(repos):
     return True
 
 
-def _validate_branch_repos(branch, repos):
-    """Validate branch and repo combinations
-
-    current-tripleo-dev and current-tripleo are master only
-    """
-    if branch == 'master':
-        return True
-    if 'current-tripleo-dev' in repos or 'current-tripleo' in repos:
-        raise InvalidArguments('Cannot use current-tripleo on any branch '
-                               'except master')
-    return True
-
-
 def _validate_args(args):
     _validate_current_tripleo(args.repos)
-    _validate_branch_repos(args.branch, args.repos)
     if args.distro not in ['centos7', 'fedora']:
         raise InvalidArguments('centos7 or fedora is the only supported '
                                'distros at this time')

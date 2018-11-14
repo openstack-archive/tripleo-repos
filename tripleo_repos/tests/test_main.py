@@ -457,12 +457,6 @@ class TestValidate(testtools.TestCase):
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
-    def test_branch_and_tripleo_dev(self):
-        self.args.repos = ['current-tripleo-dev']
-        self.args.branch = 'liberty'
-        self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args)
-
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
         self.assertRaises(main.InvalidArguments, main._validate_args,
@@ -471,12 +465,6 @@ class TestValidate(testtools.TestCase):
     def test_deps_and_tripleo_allowed(self):
         self.args.repos = ['deps', 'current-tripleo']
         main._validate_args(self.args)
-
-    def test_branch_and_tripleo(self):
-        self.args.repos = ['current-tripleo']
-        self.args.branch = 'liberty'
-        self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args)
 
     def test_invalid_distro(self):
         self.args.distro = 'Jigawatts 1.21'
