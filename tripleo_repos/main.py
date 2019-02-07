@@ -16,8 +16,10 @@
 
 import argparse
 import os
+import platform
 import re
 import subprocess
+import warnings
 
 import requests
 
@@ -49,6 +51,8 @@ baseurl=%s/centos/7/opstools/x86_64/
 gpgcheck=0
 enabled=1
 '''
+# unversioned fedora added for backwards compatibility
+SUPPORTED_DISTROS = ['centos7', 'fedora28', 'fedora']
 
 
 class InvalidArguments(Exception):
@@ -60,6 +64,13 @@ class NoRepoTitle(Exception):
 
 
 def _parse_args():
+    distro = "".join(platform.linux_distribution()[0:2]).lower()
+    if distro not in SUPPORTED_DISTROS:
+        warnings.warn(
+            "Unsupported platform '%s' detected by tripleo-repos, centos7 "
+            "will be used unless you use CLI param to change it." %
+            distro)
+        distro = 'centos7'
     parser = argparse.ArgumentParser(
         description='Download and install repos necessary for TripleO. Note '
                     'that some of these repos require yum-plugin-priorities, '
@@ -78,9 +89,11 @@ def _parse_args():
                              'each repo\'s priority so packages are installed '
                              'from the appropriate location.')
     parser.add_argument('-d', '--distro',
-                        default='centos7',
-                        help='Target distro. Currently only centos7 is '
-                             'supported')
+                        default=distro,
+                        choices=SUPPORTED_DISTROS,
+                        nargs='?',
+                        help='Target distro with default detected at runtime. '
+                        )
     parser.add_argument('-b', '--branch',
                         default='master',
                         help='Target branch. Should be the lowercase name of '
@@ -119,8 +132,9 @@ def _write_repo(content, target):
 
 def _validate_distro_repos(args):
     """Validate requested repos are valid for the distro"""
-    if args.distro in ['fedora']:
-        valid_repos = ['current', 'ceph', 'deps']
+    valid_repos = []
+    if 'fedora' in args.distro:
+        valid_repos = ['current', 'current-tripleo', 'ceph', 'deps']
     elif args.distro in ['centos7']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps']
@@ -152,9 +166,6 @@ def _validate_current_tripleo(repos):
 
 def _validate_args(args):
     _validate_current_tripleo(args.repos)
-    if args.distro not in ['centos7', 'fedora']:
-        raise InvalidArguments('centos7 or fedora is the only supported '
-                               'distros at this time')
     _validate_distro_repos(args)
 
 
@@ -182,8 +193,9 @@ def _install_priorities():
     try:
         subprocess.check_call(['yum', 'install', '-y',
                                'yum-plugin-priorities'])
-    except subprocess.CalledProcessError:
-        print('ERROR: Failed to install yum-plugin-priorities.')
+    except subprocess.CalledProcessError as e:
+        print('ERROR: Failed to install yum-plugin-priorities\n%s\n%s' %
+              (e.cmd, e.output))
         raise
 
 
