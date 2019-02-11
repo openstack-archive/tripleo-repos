@@ -22,7 +22,7 @@ from tripleo_repos import main
 
 
 class TestTripleORepos(testtools.TestCase):
-    @mock.patch('sys.argv', ['tripleo-repos', 'current'])
+    @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'centos7'])
     @mock.patch('tripleo_repos.main._run_pkg_clean')
     @mock.patch('tripleo_repos.main._validate_args')
     @mock.patch('tripleo_repos.main._get_base_path')
