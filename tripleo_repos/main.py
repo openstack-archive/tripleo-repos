@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import argparse
 import os
-import platform
 import re
 import subprocess
-import warnings
+import sys
 
 import requests
 
@@ -64,12 +64,18 @@ class NoRepoTitle(Exception):
 
 
 def _parse_args():
-    distro = "".join(platform.linux_distribution()[0:2]).lower()
+
+    distro = subprocess.Popen(
+        'source /etc/os-release && echo "$ID$VERSION_ID"',
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=open(os.devnull, 'w')).communicate()[0].rstrip()
+
     if distro not in SUPPORTED_DISTROS:
-        warnings.warn(
-            "Unsupported platform '%s' detected by tripleo-repos, centos7 "
-            "will be used unless you use CLI param to change it." %
-            distro)
+        print(
+            "WARNING: Unsupported platform '%s' detected by tripleo-repos, "
+            "centos7 will be used unless you use CLI param to change it." %
+            distro, file=sys.stderr)
         distro = 'centos7'
     parser = argparse.ArgumentParser(
         description='Download and install repos necessary for TripleO. Note '
