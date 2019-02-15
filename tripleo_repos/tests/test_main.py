@@ -69,7 +69,9 @@ class TestTripleORepos(testtools.TestCase):
         mock_response.text = '88MPH'
         mock_get.return_value = mock_response
         fake_addr = 'http://lone/pine/mall'
-        content = main._get_repo(fake_addr, mock.Mock())
+        args = mock.Mock()
+        args.distro = 'centos'
+        content = main._get_repo(fake_addr, args)
         self.assertEqual('88MPH', content)
         mock_get.assert_called_once_with(fake_addr)
 
@@ -287,6 +289,9 @@ class TestTripleORepos(testtools.TestCase):
         args.branch = 'master'
         args.output_path = 'test'
         args.centos_mirror = 'http://foo'
+        args.old_mirror = 'http://mirror.centos.org'
+        args.mirror = 'http://foo'
+        args.distro = 'centos'
         args.rdo_mirror = 'http://bar'
         # Abbrevieated repos to verify the regex works
         fake_repo = '''
@@ -397,7 +402,10 @@ baseurl=http://foo/centos/7/virt/$basearch/kvm-common
 enabled=1
 '''
         mock_args = mock.Mock(centos_mirror='http://foo',
-                              rdo_mirror='http://bar')
+                              mirror='http://foo',
+                              rdo_mirror='http://bar',
+                              distro='centos',
+                              old_mirror='http://mirror.centos.org')
         result = main._inject_mirrors(start_repo, mock_args)
         self.assertEqual(expected, result)
 
@@ -408,7 +416,8 @@ name=delorean
 baseurl=https://some.mirror.com/centos7/some-repo-hash
 enabled=1
 '''
-        mock_args = mock.Mock(rdo_mirror='http://some.mirror.com')
+        mock_args = mock.Mock(rdo_mirror='http://some.mirror.com',
+                              distro='centos')
         # If a user has a mirror whose repos already point at itself then
         # the _inject_mirrors call should be a noop.
         self.assertEqual(start_repo, main._inject_mirrors(start_repo,

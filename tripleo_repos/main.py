@@ -35,8 +35,11 @@ INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
 DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
 RDO_RE = re.compile('baseurl=%s' % DEFAULT_RDO_MIRROR)
-DEFAULT_CENTOS_MIRROR = 'http://mirror.centos.org'
-CENTOS_RE = re.compile('baseurl=%s' % DEFAULT_CENTOS_MIRROR)
+
+DEFAULT_MIRROR_MAP = {
+    'fedora': 'https://mirrors.fedoraproject.org',
+    'centos': 'http://mirror.centos.org'
+}
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
 name=tripleo-centos-ceph-%(ceph_release)s
@@ -78,6 +81,8 @@ def _parse_args():
             "centos7 will be used unless you use CLI param to change it." %
             distro, file=sys.stderr)
         distro = 'centos7'
+    distro_key = re.sub(r'[0-9]+', '', distro)
+
     parser = argparse.ArgumentParser(
         description='Download and install repos necessary for TripleO. Note '
                     'that some of these repos require yum-plugin-priorities, '
@@ -108,14 +113,30 @@ def _parse_args():
     parser.add_argument('-o', '--output-path',
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
+    parser.add_argument(
+        '--mirror',
+        default=DEFAULT_MIRROR_MAP[distro_key],
+        help='Server from which to install base OS packages. '
+             'Default value is based on distro param.')
     parser.add_argument('--centos-mirror',
-                        default=DEFAULT_CENTOS_MIRROR,
-                        help='Server from which to install base CentOS '
-                             'packages.')
+                        default=None,
+                        help='[deprecated] Server from which to install base '
+                             'CentOS packages. If mentioned it will be used '
+                             'as --mirror for backwards compatibility.')
     parser.add_argument('--rdo-mirror',
                         default=DEFAULT_RDO_MIRROR,
                         help='Server from which to install RDO packages.')
-    return parser.parse_args()
+
+    args = parser.parse_args()
+    if args.centos_mirror:
+        print("WARNING: --centos-mirror was deprecated in favour of --mirror",
+              file=sys.stderr)
+        args.mirror = args.centos_mirror
+
+    distro_key = re.sub(r'[0-9]+', '', args.distro)
+    args.old_mirror = DEFAULT_MIRROR_MAP[distro_key]
+
+    return args
 
 
 def _get_repo(path, args):
@@ -229,7 +250,10 @@ def _inject_mirrors(content, args):
     handles that by using a regex to swap out the baseurl server.
     """
     new_content = RDO_RE.sub('baseurl=%s' % args.rdo_mirror, content)
-    new_content = CENTOS_RE.sub('baseurl=%s' % args.centos_mirror, new_content)
+
+    r = re.compile('baseurl=%s' % args.old_mirror)
+    new_content = r.sub('baseurl=%s' % args.mirror, new_content)
+
     return new_content
 
 
