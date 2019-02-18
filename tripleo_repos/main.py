@@ -69,7 +69,8 @@ def _parse_args():
         'source /etc/os-release && echo "$ID$VERSION_ID"',
         shell=True,
         stdout=subprocess.PIPE,
-        stderr=open(os.devnull, 'w')).communicate()[0].rstrip()
+        stderr=open(os.devnull, 'w'),
+        universal_newlines=True).communicate()[0].rstrip()
 
     if distro not in SUPPORTED_DISTROS:
         print(
