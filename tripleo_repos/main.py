@@ -85,7 +85,8 @@ def _parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         choices=['current', 'deps', 'current-tripleo',
-                                 'current-tripleo-dev', 'ceph', 'opstools'],
+                                 'current-tripleo-dev', 'ceph', 'opstools',
+                                 'tripleo-ci-testing'],
                         help='A list of repos.  Available repos: '
                              '%(choices)s.  The deps repo will always be '
                              'included when using current or '
@@ -141,10 +142,11 @@ def _validate_distro_repos(args):
     """Validate requested repos are valid for the distro"""
     valid_repos = []
     if 'fedora' in args.distro:
-        valid_repos = ['current', 'current-tripleo', 'ceph', 'deps']
+        valid_repos = ['current', 'current-tripleo', 'ceph', 'deps',
+                       'tripleo-ci-testing']
     elif args.distro in ['centos7']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
-                       'current-tripleo-dev', 'deps']
+                       'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
     if len(invalid_repos) > 0:
         raise InvalidArguments('{} repo(s) are not valid for {}. Valid repos '
@@ -171,9 +173,25 @@ def _validate_current_tripleo(repos):
     return True
 
 
+def _validate_tripleo_ci_testing(repos):
+    """Validate tripleo-ci-testing
+
+    With tripleo-ci-testing for repo (currently only periodic container build)
+    no other repos expected except optionally deps which is enabled regardless.
+    """
+    if 'tripleo-ci-testing' in repos and len(repos) > 1:
+        if 'deps' in repos and len(repos) == 2:
+            return True
+        else:
+            raise InvalidArguments('Cannot use tripleo-ci-testing at the '
+                                   'same time as other repos, except deps.')
+    return True
+
+
 def _validate_args(args):
     _validate_current_tripleo(args.repos)
     _validate_distro_repos(args)
+    _validate_tripleo_ci_testing(args.repos)
 
 
 def _remove_existing(args):
@@ -266,6 +284,11 @@ def _install_repos(args, base_path):
             content += '\n%s' % INCLUDE_PKGS
             content = _change_priority(content, 10)
             _write_repo(content, args.output_path)
+        elif repo == 'tripleo-ci-testing':
+            content = _get_repo(base_path + 'tripleo-ci-testing/delorean.repo',
+                                args)
+            _write_repo(content, args.output_path)
+            install_deps(args, base_path)
         elif repo == 'ceph':
             if args.branch in ['liberty', 'mitaka']:
                 content = _create_ceph(args, 'hammer')

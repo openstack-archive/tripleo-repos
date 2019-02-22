@@ -236,6 +236,25 @@ class TestTripleORepos(testtools.TestCase):
                                       'priority=10' %
                                       main.INCLUDE_PKGS, 'test')
 
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_tripleo_ci_testing(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['tripleo-ci-testing']
+        args.branch = 'master'
+        args.output_path = 'test'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        self.assertEqual([mock.call('roads/tripleo-ci-testing/delorean.repo',
+                                    args),
+                          mock.call('roads/delorean-deps.repo', args),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
+
     @mock.patch('tripleo_repos.main._write_repo')
     @mock.patch('tripleo_repos.main._create_ceph')
     def test_install_repos_ceph(self, mock_create_ceph, mock_write_repo):
@@ -446,6 +465,15 @@ class TestValidate(testtools.TestCase):
         self.args.repos = ['current', 'current-tripleo-dev']
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
+
+    def test_tripleo_ci_testing_and_current_tripleo(self):
+        self.args.repos = ['current-tripleo', 'tripleo-ci-testing']
+        self.assertRaises(main.InvalidArguments, main._validate_args,
+                          self.args)
+
+    def test_tripleo_ci_testing_and_deps_allowed(self):
+        self.args.repos = ['deps', 'tripleo-ci-testing']
+        main._validate_args(self.args)
 
     def test_ceph_and_tripleo_dev(self):
         self.args.repos = ['current-tripleo-dev', 'ceph']
