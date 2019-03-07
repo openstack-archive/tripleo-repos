@@ -114,13 +114,12 @@ def _parse_args():
     parser.add_argument('-o', '--output-path',
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
-    parser.add_argument(
-        '--mirror',
-        default=DEFAULT_MIRROR_MAP[distro_key],
-        help='Server from which to install base OS packages. '
-             'Default value is based on distro param.')
+    parser.add_argument('--mirror',
+                        default=DEFAULT_MIRROR_MAP[distro_key],
+                        help='Server from which to install base OS packages. '
+                             'Default value is based on distro param.')
     parser.add_argument('--centos-mirror',
-                        default=None,
+                        default=DEFAULT_MIRROR_MAP[distro_key],
                         help='[deprecated] Server from which to install base '
                              'CentOS packages. If mentioned it will be used '
                              'as --mirror for backwards compatibility.')
