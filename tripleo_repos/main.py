@@ -29,7 +29,7 @@ PRIORITY_RE = re.compile('priority=\\d+')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
                 'os-apply-config,os-collect-config,os-net-config,'
-                'os-refresh-config,python-tripleoclient,'
+                'os-refresh-config,python*-tripleoclient,'
                 'openstack-tripleo-*,openstack-puppet-modules,'
                 'puppet-*,python*-tripleo-common,python*-paunch*')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
