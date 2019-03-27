@@ -147,11 +147,13 @@ def _get_repo(path, args):
         r.raise_for_status()
 
 
-def _write_repo(content, target):
-    m = TITLE_RE.search(content)
-    if not m:
-        raise NoRepoTitle('Could not find repo title in: \n%s' % content)
-    filename = m.group(1) + '.repo'
+def _write_repo(content, target, name=None):
+    if not name:
+        m = TITLE_RE.search(content)
+        if not m:
+            raise NoRepoTitle('Could not find repo title in: \n%s' % content)
+        name = m.group(1)
+    filename = name + '.repo'
     filename = os.path.join(target, filename)
     with open(filename, 'w') as f:
         f.write(content)
@@ -284,7 +286,7 @@ def _install_repos(args, base_path):
             content = _get_repo(base_path + 'current/delorean.repo', args)
             if args.branch != 'master':
                 content = TITLE_RE.sub('[delorean-%s]' % args.branch, content)
-            _write_repo(content, args.output_path)
+            _write_repo(content, args.output_path, name='delorean')
             install_deps(args, base_path)
         elif repo == 'deps':
             install_deps(args, base_path)

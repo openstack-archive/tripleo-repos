@@ -161,7 +161,8 @@ class TestTripleORepos(testtools.TestCase):
                           mock.call('roads/delorean-deps.repo', args),
                           ],
                          mock_get.mock_calls)
-        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test',
+                                    name='delorean'),
                           mock.call('[delorean]\nMr. Fusion', 'test'),
                           ],
                          mock_write.mock_calls)
@@ -179,7 +180,8 @@ class TestTripleORepos(testtools.TestCase):
                           mock.call('roads/delorean-deps.repo', args),
                           ],
                          mock_get.mock_calls)
-        self.assertEqual([mock.call('[delorean-mitaka]\nMr. Fusion', 'test'),
+        self.assertEqual([mock.call('[delorean-mitaka]\nMr. Fusion', 'test',
+                                    name='delorean'),
                           mock.call('[delorean]\nMr. Fusion', 'test'),
                           ],
                          mock_write.mock_calls)
