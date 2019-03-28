@@ -228,8 +228,9 @@ def _remove_existing(args):
 
 def _get_base_path(args):
     if args.branch != 'master':
-        if args.distro not in ['centos7']:
-            raise InvalidArguments('Branches only suppported with centos7')
+        if args.distro in ['fedora28'] and args.branch != 'stein':
+            raise InvalidArguments('Only stable/stein branch is suppported '
+                                   'with fedora28.')
         distro_branch = '%s-%s' % (args.distro, args.branch)
     else:
         distro_branch = args.distro
