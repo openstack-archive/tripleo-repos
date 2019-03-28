@@ -157,7 +157,7 @@ def _write_repo(content, target, name=None):
     filename = os.path.join(target, filename)
     with open(filename, 'w') as f:
         f.write(content)
-    print('Installed repo %s to %s' % (m.group(1), filename))
+    print('Installed repo %s to %s' % (name, filename))
 
 
 def _validate_distro_repos(args):
