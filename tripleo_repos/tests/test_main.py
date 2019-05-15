@@ -15,12 +15,14 @@
 import subprocess
 import sys
 
+import ddt
 import mock
 import testtools
 
 from tripleo_repos import main
 
 
+@ddt.ddt
 class TestTripleORepos(testtools.TestCase):
     @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'centos7'])
     @mock.patch('tripleo_repos.main._run_pkg_clean')
@@ -267,31 +269,33 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
+    @ddt.data('liberty', 'mitaka', 'newton', 'ocata', 'pike', 'queens',
+              'rocky', 'stein', 'master')
     @mock.patch('tripleo_repos.main._write_repo')
     @mock.patch('tripleo_repos.main._create_ceph')
-    def test_install_repos_ceph(self, mock_create_ceph, mock_write_repo):
+    def test_install_repos_ceph(self,
+                                branch,
+                                mock_create_ceph,
+                                mock_write_repo):
+        ceph_release = {
+            'liberty': 'hammer',
+            'mitaka': 'hammer',
+            'newton': 'jewel',
+            'ocata': 'jewel',
+            'pike': 'jewel',
+            'queens': 'luminous',
+            'rocky': 'luminous',
+            'stein': 'nautilus',
+            'master': 'nautilus',
+        }
         args = mock.Mock()
         args.repos = ['ceph']
-        args.branch = 'master'
+        args.branch = branch
         args.output_path = 'test'
         mock_repo = '[centos-ceph-luminous]\nMr. Fusion'
         mock_create_ceph.return_value = mock_repo
         main._install_repos(args, 'roads/')
-        mock_create_ceph.assert_called_once_with(args, 'luminous')
-        mock_write_repo.assert_called_once_with(mock_repo, 'test')
-
-    @mock.patch('tripleo_repos.main._write_repo')
-    @mock.patch('tripleo_repos.main._create_ceph')
-    def test_install_repos_ceph_mitaka(self, mock_create_ceph,
-                                       mock_write_repo):
-        args = mock.Mock()
-        args.repos = ['ceph']
-        args.branch = 'mitaka'
-        args.output_path = 'test'
-        mock_repo = '[centos-ceph-hammer]\nMr. Fusion'
-        mock_create_ceph.return_value = mock_repo
-        main._install_repos(args, 'roads/')
-        mock_create_ceph.assert_called_once_with(args, 'hammer')
+        mock_create_ceph.assert_called_once_with(args, ceph_release[branch])
         mock_write_repo.assert_called_once_with(mock_repo, 'test')
 
     @mock.patch('tripleo_repos.main._write_repo')
