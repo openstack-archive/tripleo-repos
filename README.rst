@@ -9,7 +9,7 @@ Also ensures yum-plugin-priorities is installed since the RDO Trunk repos
 require that to work sanely.
 
 .. note:: The tool will remove any delorean* repos at the target location
-          to avoid conflicts with older repos.  This means you must specify
+          to avoid conflicts with older repos. This means you must specify
           all of the repos you want to enable in one tripleo-repos call.
 
 Examples
@@ -22,7 +22,7 @@ Install current-tripleo RDO Trunk repo and the deps repo::
 
     tripleo-repos current-tripleo
 
-Install the current-tripleo-dev repo.  This will also pull current and deps,
+Install the current-tripleo-dev repo. This will also pull current and deps,
 and will adjust the priorities of each repo appropriately::
 
     tripleo-repos current-tripleo-dev
@@ -35,7 +35,7 @@ Write repos to a different path::
 
     tripleo-repos -o ~/test-repos current
 
-Install the current-tripleo, deps, and ceph repos.  NOTE: The Ceph repo is
+Install the current-tripleo, deps, and ceph repos. NOTE: The Ceph repo is
 installed from a package and thus does not respect -o::
 
     tripleo-repos current-tripleo ceph
