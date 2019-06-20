@@ -36,9 +36,11 @@ DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
 DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
 RDO_RE = re.compile('baseurl=%s' % DEFAULT_RDO_MIRROR)
 
+# RHEL is only provided to licensed cloud providers via RHUI
 DEFAULT_MIRROR_MAP = {
     'fedora': 'https://mirrors.fedoraproject.org',
-    'centos': 'http://mirror.centos.org'
+    'centos': 'http://mirror.centos.org',
+    'rhel': '',
 }
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
@@ -55,7 +57,12 @@ gpgcheck=0
 enabled=1
 '''
 # unversioned fedora added for backwards compatibility
-SUPPORTED_DISTROS = ['centos7', 'fedora28', 'fedora']
+SUPPORTED_DISTROS = [
+    ('centos', '7'),
+    ('fedora', '28'),
+    ('fedora', ''),
+    ('rhel', '8')
+]
 
 
 class InvalidArguments(Exception):
@@ -66,22 +73,44 @@ class NoRepoTitle(Exception):
     pass
 
 
-def _parse_args():
+def _get_distro():
 
-    distro = subprocess.Popen(
-        'source /etc/os-release && echo "$ID$VERSION_ID"',
+    output = subprocess.Popen(
+        'source /etc/os-release && echo -e -n "$ID\n$VERSION_ID"',
         shell=True,
         stdout=subprocess.PIPE,
         stderr=open(os.devnull, 'w'),
-        universal_newlines=True).communicate()[0].rstrip()
+        executable='/bin/bash',
+        universal_newlines=True).communicate()
 
-    if distro not in SUPPORTED_DISTROS:
+    # distro_id and distro_version_id will always be at least an empty string
+    distro_id, distro_version_id = output[0].split('\n')
+
+    # if distro_version_id is empty string the major version will be empty
+    # string too
+    distro_major_version_id = distro_version_id.split('.')[0]
+
+    if (distro_id, distro_major_version_id) not in SUPPORTED_DISTROS:
         print(
-            "WARNING: Unsupported platform '%s' detected by tripleo-repos, "
-            "centos7 will be used unless you use CLI param to change it." %
-            distro, file=sys.stderr)
-        distro = 'centos7'
-    distro_key = re.sub(r'[0-9]+', '', distro)
+            "WARNING: Unsupported platform '{}{}' detected by tripleo-repos,"
+            " centos7 will be used unless you use CLI param to change it."
+            "".format(distro_id, distro_major_version_id), file=sys.stderr)
+        distro_id = 'centos'
+        distro_major_version_id = '7'
+
+    return distro_id, distro_major_version_id
+
+
+def _parse_args():
+
+    distro_id, distro_major_version_id = _get_distro()
+
+    distro = "{}{}".format(distro_id, distro_major_version_id)
+
+    # Calculating arguments default from constants
+    default_mirror = DEFAULT_MIRROR_MAP[distro_id]
+    distro_choices = ["".join(distro_pair)
+                      for distro_pair in SUPPORTED_DISTROS]
 
     parser = argparse.ArgumentParser(
         description='Download and install repos necessary for TripleO. Note '
@@ -103,7 +132,7 @@ def _parse_args():
                              'from the appropriate location.')
     parser.add_argument('-d', '--distro',
                         default=distro,
-                        choices=SUPPORTED_DISTROS,
+                        choices=distro_choices,
                         nargs='?',
                         help='Target distro with default detected at runtime. '
                         )
@@ -115,11 +144,11 @@ def _parse_args():
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
     parser.add_argument('--mirror',
-                        default=DEFAULT_MIRROR_MAP[distro_key],
+                        default=default_mirror,
                         help='Server from which to install base OS packages. '
                              'Default value is based on distro param.')
     parser.add_argument('--centos-mirror',
-                        default=DEFAULT_MIRROR_MAP[distro_key],
+                        default=default_mirror,
                         help='[deprecated] Server from which to install base '
                              'CentOS packages. If mentioned it will be used '
                              'as --mirror for backwards compatibility.')
@@ -133,8 +162,7 @@ def _parse_args():
               file=sys.stderr)
         args.mirror = args.centos_mirror
 
-    distro_key = re.sub(r'[0-9]+', '', args.distro)
-    args.old_mirror = DEFAULT_MIRROR_MAP[distro_key]
+    args.old_mirror = default_mirror
 
     return args
 
@@ -167,6 +195,9 @@ def _validate_distro_repos(args):
         valid_repos = ['current', 'current-tripleo', 'ceph', 'deps',
                        'tripleo-ci-testing']
     elif args.distro in ['centos7']:
+        valid_repos = ['ceph', 'current', 'current-tripleo',
+                       'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
+    elif args.distro in ['rhel8']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
@@ -227,13 +258,18 @@ def _remove_existing(args):
 
 
 def _get_base_path(args):
-    if args.branch != 'master':
-        if args.distro in ['fedora28'] and args.branch != 'stein':
-            raise InvalidArguments('Only stable/stein branch is suppported '
-                                   'with fedora28.')
-        distro_branch = '%s-%s' % (args.distro, args.branch)
-    else:
-        distro_branch = args.distro
+    if args.distro == 'fedora28' and \
+            args.branch not in ['stein', 'master']:
+        raise InvalidArguments('Only stable/stein and master branches'
+                               'are supported with fedora28.')
+
+    # The mirror url with /$DISTRO$VERSION path for master branch is
+    # deprecated.
+    # The default for rdo mirrors is $DISTRO$VERSION-$BRANCH
+    # it should work for every (distro, branch) pair that
+    # makes sense
+    # Any exception should be corrected at source, not here.
+    distro_branch = '%s-%s' % (args.distro, args.branch)
     return '%s/%s/' % (args.rdo_mirror, distro_branch)
 
 
