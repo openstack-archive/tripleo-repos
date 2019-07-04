@@ -108,21 +108,15 @@ class TestTripleORepos(testtools.TestCase):
         self.assertNotIn(mock.call('/etc/yum.repos.d/foo.repo'),
                          mock_remove.mock_calls)
 
+    # There is no $DISTRO single path anymore, every path has branch
+    # specification, even master
     def test_get_base_path(self):
         args = mock.Mock()
         args.branch = 'master'
         args.distro = 'centos7'
         args.rdo_mirror = 'http://trunk.rdoproject.org'
         path = main._get_base_path(args)
-        self.assertEqual('http://trunk.rdoproject.org/centos7/', path)
-
-    def test_get_base_path_branch(self):
-        args = mock.Mock()
-        args.branch = 'liberty'
-        args.distro = 'centos7'
-        args.rdo_mirror = 'http://trunk.rdoproject.org'
-        path = main._get_base_path(args)
-        self.assertEqual('http://trunk.rdoproject.org/centos7-liberty/', path)
+        self.assertEqual('http://trunk.rdoproject.org/centos7-master/', path)
 
     def test_get_base_path_fedora(self):
         args = mock.Mock()
@@ -130,7 +124,7 @@ class TestTripleORepos(testtools.TestCase):
         args.distro = 'fedora'
         args.rdo_mirror = 'http://trunk.rdoproject.org'
         path = main._get_base_path(args)
-        self.assertEqual('http://trunk.rdoproject.org/fedora/', path)
+        self.assertEqual('http://trunk.rdoproject.org/fedora-master/', path)
 
     def test_get_base_path_fedora_unsup_branch(self):
         args = mock.Mock()
