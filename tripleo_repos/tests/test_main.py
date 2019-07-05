@@ -320,7 +320,7 @@ class TestTripleORepos(testtools.TestCase):
         args.mirror = 'http://foo'
         args.distro = 'centos'
         args.rdo_mirror = 'http://bar'
-        # Abbrevieated repos to verify the regex works
+        # Abbreviated repos to verify the regex works
         fake_repo = '''
 [delorean-current-tripleo]
 name=test repo
@@ -407,7 +407,7 @@ enabled=1
 '''
         self.assertEqual(expected_repo, result)
 
-    def test_inject_mirrors(self):
+    def test_inject_mirrors_centos(self):
         start_repo = '''
 [delorean]
 name=delorean
@@ -433,6 +433,35 @@ enabled=1
                               rdo_mirror='http://bar',
                               distro='centos',
                               old_mirror='http://mirror.centos.org')
+        result = main._inject_mirrors(start_repo, mock_args)
+        self.assertEqual(expected, result)
+
+    def test_inject_mirrors_rhel(self):
+        start_repo = '''
+[delorean]
+name=delorean
+baseurl=https://trunk.rdoproject.org/centos7/some-repo-hash
+enabled=1
+[rhel]
+name=rhel
+baseurl=https://some/stuff
+enabled=1
+'''
+        expected = '''
+[delorean]
+name=delorean
+baseurl=http://bar/centos7/some-repo-hash
+enabled=1
+[rhel]
+name=rhel
+baseurl=http://foo/stuff
+enabled=1
+'''
+        mock_args = mock.Mock(centos_mirror='http://foo',
+                              mirror='http://foo',
+                              rdo_mirror='http://bar',
+                              distro='rhel',
+                              old_mirror='https://some')
         result = main._inject_mirrors(start_repo, mock_args)
         self.assertEqual(expected, result)
 

@@ -34,13 +34,12 @@ INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
                 'puppet-*,python*-tripleo-common,python*-paunch*')
 DEFAULT_OUTPUT_PATH = '/etc/yum.repos.d'
 DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
-RDO_RE = re.compile('baseurl=%s' % DEFAULT_RDO_MIRROR)
 
 # RHEL is only provided to licensed cloud providers via RHUI
 DEFAULT_MIRROR_MAP = {
     'fedora': 'https://mirrors.fedoraproject.org',
     'centos': 'http://mirror.centos.org',
-    'rhel': '',
+    'rhel': 'https://trunk.rdoproject.org',
 }
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
@@ -305,12 +304,17 @@ def _inject_mirrors(content, args):
     replace any such references with the mirror address.  This function
     handles that by using a regex to swap out the baseurl server.
     """
-    new_content = RDO_RE.sub('baseurl=%s' % args.rdo_mirror, content)
 
-    r = re.compile('baseurl=%s' % args.old_mirror)
-    new_content = r.sub('baseurl=%s' % args.mirror, new_content)
+    content = re.sub('baseurl=%s' % DEFAULT_RDO_MIRROR,
+                     'baseurl=%s' % args.rdo_mirror,
+                     content)
 
-    return new_content
+    if args.old_mirror:
+        content = re.sub('baseurl=%s' % args.old_mirror,
+                         'baseurl=%s' % args.mirror,
+                         content)
+
+    return content
 
 
 def _install_repos(args, base_path):
