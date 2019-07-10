@@ -298,7 +298,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['opstools']
         args.branch = 'master'
         args.output_path = 'test'
-        args.centos_mirror = 'http://foo'
+        args.mirror = 'http://foo'
         main._install_repos(args, 'roads/')
         expected_repo = ('\n[tripleo-centos-opstools]\n'
                          'name=tripleo-centos-opstools\n'
@@ -315,7 +315,6 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['deps']
         args.branch = 'master'
         args.output_path = 'test'
-        args.centos_mirror = 'http://foo'
         args.old_mirror = 'http://mirror.centos.org'
         args.mirror = 'http://foo'
         args.distro = 'centos'
@@ -396,7 +395,7 @@ enabled=1
         self.assertEqual('[delorean]\npriority=10', result)
 
     def test_create_ceph(self):
-        mock_args = mock.Mock(centos_mirror='http://foo')
+        mock_args = mock.Mock(mirror='http://foo')
         result = main._create_ceph(mock_args, 'jewel')
         expected_repo = '''
 [tripleo-centos-ceph-jewel]
@@ -428,8 +427,7 @@ name=centos
 baseurl=http://foo/centos/7/virt/$basearch/kvm-common
 enabled=1
 '''
-        mock_args = mock.Mock(centos_mirror='http://foo',
-                              mirror='http://foo',
+        mock_args = mock.Mock(mirror='http://foo',
                               rdo_mirror='http://bar',
                               distro='centos',
                               old_mirror='http://mirror.centos.org')
@@ -457,8 +455,7 @@ name=rhel
 baseurl=http://foo/stuff
 enabled=1
 '''
-        mock_args = mock.Mock(centos_mirror='http://foo',
-                              mirror='http://foo',
+        mock_args = mock.Mock(mirror='http://foo',
                               rdo_mirror='http://bar',
                               distro='rhel',
                               old_mirror='https://some')

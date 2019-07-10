@@ -44,7 +44,7 @@ DEFAULT_MIRROR_MAP = {
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
 name=tripleo-centos-ceph-%(ceph_release)s
-baseurl=%(centos_mirror)s/centos/7/storage/x86_64/ceph-%(ceph_release)s/
+baseurl=%(mirror)s/centos/7/storage/x86_64/ceph-%(ceph_release)s/
 gpgcheck=0
 enabled=1
 '''
@@ -146,21 +146,11 @@ def _parse_args():
                         default=default_mirror,
                         help='Server from which to install base OS packages. '
                              'Default value is based on distro param.')
-    parser.add_argument('--centos-mirror',
-                        default=default_mirror,
-                        help='[deprecated] Server from which to install base '
-                             'CentOS packages. If mentioned it will be used '
-                             'as --mirror for backwards compatibility.')
     parser.add_argument('--rdo-mirror',
                         default=DEFAULT_RDO_MIRROR,
                         help='Server from which to install RDO packages.')
 
     args = parser.parse_args()
-    if args.centos_mirror:
-        print("WARNING: --centos-mirror was deprecated in favour of --mirror",
-              file=sys.stderr)
-        args.mirror = args.centos_mirror
-
     args.old_mirror = default_mirror
 
     return args
@@ -285,7 +275,7 @@ def _install_priorities():
 def _create_ceph(args, release):
     """Generate a Ceph repo file for release"""
     return CEPH_REPO_TEMPLATE % {'ceph_release': release,
-                                 'centos_mirror': args.centos_mirror}
+                                 'mirror': args.mirror}
 
 
 def _change_priority(content, new_priority):
@@ -366,7 +356,7 @@ def _install_repos(args, base_path):
                 content = _create_ceph(args, 'nautilus')
             _write_repo(content, args.output_path)
         elif repo == 'opstools':
-            content = OPSTOOLS_REPO_TEMPLATE % args.centos_mirror
+            content = OPSTOOLS_REPO_TEMPLATE % args.mirror
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
