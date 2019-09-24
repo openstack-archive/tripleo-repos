@@ -59,6 +59,7 @@ enabled=1
 # unversioned fedora added for backwards compatibility
 SUPPORTED_DISTROS = [
     ('centos', '7'),
+    ('centos', '8'),
     ('fedora', '28'),
     ('fedora', ''),
     ('rhel', '8')
@@ -184,10 +185,7 @@ def _validate_distro_repos(args):
     if 'fedora' in args.distro:
         valid_repos = ['current', 'current-tripleo', 'ceph', 'deps',
                        'tripleo-ci-testing']
-    elif args.distro in ['centos7']:
-        valid_repos = ['ceph', 'current', 'current-tripleo',
-                       'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
-    elif args.distro in ['rhel8']:
+    elif args.distro in ['centos7', 'centos8', 'rhel8']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
