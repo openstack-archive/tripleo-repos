@@ -56,6 +56,24 @@ baseurl=%s/centos/7/opstools/x86_64/
 gpgcheck=0
 enabled=1
 '''
+# centos-8 only
+HIGHAVAILABILITY_REPO_TEMPLATE = '''
+[tripleo-centos-highavailability]
+name=tripleo-centos-highavailability
+baseurl=%s/centos/8/HighAvailability/x86_64/os/
+gpgcheck=0
+enabled=1
+'''
+# centos-8 only
+POWERTOOLS_REPO_TEMPLATE = '''
+[tripleo-centos-powertools]
+name=tripleo-centos-powertools
+baseurl=%s/centos/8/PowerTools/x86_64/os/
+gpgcheck=0
+enabled=1
+'''
+
+
 # unversioned fedora added for backwards compatibility
 SUPPORTED_DISTROS = [
     ('centos', '7'),
@@ -172,6 +190,10 @@ def _write_repo(content, target, name=None):
         if not m:
             raise NoRepoTitle('Could not find repo title in: \n%s' % content)
         name = m.group(1)
+        # centos-8 dlrn repos have changed. repos per component
+        # are folded into a single repo.
+        if 'component' in name:
+            name = 'delorean'
     filename = name + '.repo'
     filename = os.path.join(target, filename)
     with open(filename, 'w') as f:
@@ -187,7 +209,8 @@ def _validate_distro_repos(args):
                        'tripleo-ci-testing']
     elif args.distro in ['centos7', 'centos8', 'rhel8']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
-                       'current-tripleo-dev', 'deps', 'tripleo-ci-testing']
+                       'current-tripleo-dev', 'deps', 'tripleo-ci-testing',
+                       'opstools']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
     if len(invalid_repos) > 0:
         raise InvalidArguments('{} repo(s) are not valid for {}. Valid repos '
@@ -237,7 +260,9 @@ def _validate_args(args):
 
 def _remove_existing(args):
     """Remove any delorean* or opstools repos that already exist"""
-    pattern = re.compile('^(delorean|tripleo-centos-(opstools|ceph)).*.repo')
+    regex = '^(delorean|tripleo-centos-' \
+            '(opstools|ceph|highavailability|powertools)).*.repo'
+    pattern = re.compile(regex)
     for f in os.listdir(args.output_path):
         if pattern.match(f):
             filename = os.path.join(args.output_path, f)
@@ -359,6 +384,12 @@ def _install_repos(args, base_path):
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
+    # HA, Powertools are required for CentOS-8
+    if args.distro == 'centos8':
+        content = HIGHAVAILABILITY_REPO_TEMPLATE % args.mirror
+        _write_repo(content, args.output_path)
+        content = POWERTOOLS_REPO_TEMPLATE % args.mirror
+        _write_repo(content, args.output_path)
 
 
 def _run_pkg_clean(distro):

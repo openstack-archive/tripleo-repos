@@ -92,7 +92,8 @@ class TestTripleORepos(testtools.TestCase):
     def test_remove_existing(self, mock_remove, mock_listdir):
         fake_list = ['foo.repo', 'delorean.repo',
                      'delorean-current-tripleo.repo',
-                     'tripleo-centos-opstools.repo']
+                     'tripleo-centos-opstools.repo',
+                     'tripleo-centos-highavailability.repo']
         mock_listdir.return_value = fake_list
         mock_args = mock.Mock()
         mock_args.output_path = '/etc/yum.repos.d'
@@ -104,6 +105,10 @@ class TestTripleORepos(testtools.TestCase):
                       mock_remove.mock_calls)
         self.assertIn(
             mock.call('/etc/yum.repos.d/tripleo-centos-opstools.repo'),
+            mock_remove.mock_calls)
+        self.assertIn(
+            mock.call('/etc/yum.repos.d/'
+                      'tripleo-centos-highavailability.repo'),
             mock_remove.mock_calls)
         self.assertNotIn(mock.call('/etc/yum.repos.d/foo.repo'),
                          mock_remove.mock_calls)
