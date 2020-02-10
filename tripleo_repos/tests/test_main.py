@@ -268,6 +268,25 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_current_tripleo_rdo(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['current-tripleo-rdo']
+        args.branch = 'master'
+        args.output_path = 'test'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        self.assertEqual([mock.call('roads/current-tripleo-rdo/delorean.repo',
+                                    args),
+                          mock.call('roads/delorean-deps.repo', args),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          ],
+                         mock_write.mock_calls)
+
     @ddt.data('liberty', 'mitaka', 'newton', 'ocata', 'pike', 'queens',
               'rocky', 'stein', 'master')
     @mock.patch('tripleo_repos.main._write_repo')

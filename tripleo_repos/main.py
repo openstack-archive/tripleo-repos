@@ -139,7 +139,7 @@ def _parse_args():
     parser.add_argument('repos', metavar='REPO', nargs='+',
                         choices=['current', 'deps', 'current-tripleo',
                                  'current-tripleo-dev', 'ceph', 'opstools',
-                                 'tripleo-ci-testing'],
+                                 'tripleo-ci-testing', 'current-tripleo-rdo'],
                         help='A list of repos.  Available repos: '
                              '%(choices)s.  The deps repo will always be '
                              'included when using current or '
@@ -210,7 +210,7 @@ def _validate_distro_repos(args):
     elif args.distro in ['centos7', 'centos8', 'rhel8']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps', 'tripleo-ci-testing',
-                       'opstools']
+                       'opstools', 'current-tripleo-rdo']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
     if len(invalid_repos) > 0:
         raise InvalidArguments('{} repo(s) are not valid for {}. Valid repos '
@@ -367,6 +367,11 @@ def _install_repos(args, base_path):
         elif repo == 'tripleo-ci-testing':
             content = _get_repo(base_path + 'tripleo-ci-testing/delorean.repo',
                                 args)
+            _write_repo(content, args.output_path)
+            install_deps(args, base_path)
+        elif repo == 'current-tripleo-rdo':
+            content = _get_repo(
+                base_path + 'current-tripleo-rdo/delorean.repo', args)
             _write_repo(content, args.output_path)
             install_deps(args, base_path)
         elif repo == 'ceph':
