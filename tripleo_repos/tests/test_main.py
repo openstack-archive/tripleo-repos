@@ -424,7 +424,7 @@ enabled=1
         expected_repo = '''
 [tripleo-centos-ceph-jewel]
 name=tripleo-centos-ceph-jewel
-baseurl=http://foo/centos/7/storage/x86_64/ceph-jewel/
+baseurl=http://foo/centos/8/storage/x86_64/ceph-jewel/
 gpgcheck=0
 enabled=1
 '''

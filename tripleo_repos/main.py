@@ -45,7 +45,7 @@ DEFAULT_MIRROR_MAP = {
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
 name=tripleo-centos-ceph-%(ceph_release)s
-baseurl=%(mirror)s/centos/7/storage/x86_64/ceph-%(ceph_release)s/
+baseurl=%(mirror)s/centos/%(centos_release)s/storage/x86_64/ceph-%(ceph_release)s/
 gpgcheck=0
 enabled=1
 '''
@@ -298,7 +298,9 @@ def _install_priorities():
 
 def _create_ceph(args, release):
     """Generate a Ceph repo file for release"""
-    return CEPH_REPO_TEMPLATE % {'ceph_release': release,
+    centos_release = '7' if args.distro == 'centos7' else '8'
+    return CEPH_REPO_TEMPLATE % {'centos_release': centos_release,
+                                 'ceph_release': release,
                                  'mirror': args.mirror}
 
 
