@@ -14,9 +14,9 @@
 
 import subprocess
 import sys
+from unittest import mock
 
 import ddt
-import mock
 import testtools
 
 from tripleo_repos import main
