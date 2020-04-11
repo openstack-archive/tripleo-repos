@@ -23,8 +23,9 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx.ext.autodoc',
     #'sphinx.ext.intersphinx',
-    'oslosphinx'
+    'openstackdocstheme'
 ]
+
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -49,6 +50,10 @@ add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+html_theme = 'openstackdocs'
+repository_name = 'openstack/tripleo-repos'
+bug_project = 'tripleo'
 
 # -- Options for HTML output --------------------------------------------------
 
