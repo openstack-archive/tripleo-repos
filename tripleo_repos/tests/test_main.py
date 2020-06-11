@@ -538,6 +538,10 @@ class TestValidate(testtools.TestCase):
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args)
 
+    def test_tripleo_ci_testing_and_ceph_opstools_allowed(self):
+        self.args.repos = ['ceph', 'opstools', 'tripleo-ci-testing']
+        main._validate_args(self.args)
+
     def test_tripleo_ci_testing_and_deps_allowed(self):
         self.args.repos = ['deps', 'tripleo-ci-testing']
         main._validate_args(self.args)

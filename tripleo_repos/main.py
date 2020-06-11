@@ -241,14 +241,16 @@ def _validate_tripleo_ci_testing(repos):
     """Validate tripleo-ci-testing
 
     With tripleo-ci-testing for repo (currently only periodic container build)
-    no other repos expected except optionally deps which is enabled regardless.
+    no other repos expected except optionally deps|ceph|opstools
+    which is enabled regardless.
     """
     if 'tripleo-ci-testing' in repos and len(repos) > 1:
-        if 'deps' in repos and len(repos) == 2:
+        if 'deps' in repos or 'ceph' in repos or 'opstools' in repos:
             return True
         else:
             raise InvalidArguments('Cannot use tripleo-ci-testing at the '
-                                   'same time as other repos, except deps.')
+                                   'same time as other repos, except '
+                                   'deps|ceph|opstools.')
     return True
 
 
