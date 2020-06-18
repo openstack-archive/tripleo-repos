@@ -239,15 +239,16 @@ class TestTripleORepos(testtools.TestCase):
         mock_get.assert_any_call('roads/delorean-deps.repo', args)
         # This is the wrong name for the deps repo, but I'm not bothered
         # enough by that to mess with mocking multiple different calls.
-        mock_write.assert_any_call('[delorean]\n'
-                                   'Mr. Fusion', 'test')
+        mock_write.assert_any_call('[delorean]\nMr. Fusion', 'test')
         mock_get.assert_any_call('roads/current-tripleo/delorean.repo', args)
         mock_write.assert_any_call('[delorean-current-tripleo]\n'
-                                   'Mr. Fusion\npriority=20', 'test')
+                                   'priority=20\nMr. Fusion', 'test',
+                                   name='delorean-current-tripleo')
         mock_get.assert_called_with('roads/current/delorean.repo', args)
-        mock_write.assert_called_with('[delorean]\nMr. Fusion\n%s\n'
-                                      'priority=10' %
-                                      main.INCLUDE_PKGS, 'test')
+        mock_write.assert_called_with('[delorean]\npriority=10\n%s\n'
+                                      'Mr. Fusion' %
+                                      main.INCLUDE_PKGS, 'test',
+                                      name='delorean')
 
     @mock.patch('tripleo_repos.main._get_repo')
     @mock.patch('tripleo_repos.main._write_repo')
@@ -417,6 +418,18 @@ enabled=1
     def test_change_priority_none(self):
         result = main._change_priority('[delorean]', 10)
         self.assertEqual('[delorean]\npriority=10', result)
+
+    def test_change_priority_none_muilti(self):
+        data = "[repo1]\n[repo2]\n"
+        expected = "[repo1]\n{0}\n[repo2]\n{0}\n".format("priority=10")
+        result = main._change_priority(data, 10)
+        self.assertEqual(expected, result)
+
+    def test_add_includepkgs(self):
+        data = "[repo1]\n[repo2]"
+        expected = "[repo1]\n{0}\n[repo2]\n{0}".format(main.INCLUDE_PKGS)
+        result = main._add_includepkgs(data)
+        self.assertEqual(expected, result)
 
     def test_create_ceph(self):
         mock_args = mock.Mock(mirror='http://foo')

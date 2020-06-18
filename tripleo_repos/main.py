@@ -25,6 +25,7 @@ import requests
 
 
 TITLE_RE = re.compile('\\[(.*)\\]')
+NAME_RE = re.compile('name=(.+)')
 PRIORITY_RE = re.compile('priority=\\d+')
 # Packages to be included from delorean-current when using current-tripleo
 INCLUDE_PKGS = ('includepkgs=instack,instack-undercloud,'
@@ -310,8 +311,22 @@ def _change_priority(content, new_priority):
     new_content = PRIORITY_RE.sub('priority=%d' % new_priority, content)
     # This shouldn't happen, but let's be safe.
     if not PRIORITY_RE.search(new_content):
-        new_content += '\npriority=%d' % new_priority
+        new_content = []
+        for line in content.split("\n"):
+            new_content.append(line)
+            if line.startswith('['):
+                new_content.append('priority=%d' % new_priority)
+        new_content = "\n".join(new_content)
     return new_content
+
+
+def _add_includepkgs(content):
+    new_content = []
+    for line in content.split("\n"):
+        new_content.append(line)
+        if line.startswith('['):
+            new_content.append(INCLUDE_PKGS)
+    return "\n".join(new_content)
 
 
 def _inject_mirrors(content, args):
@@ -357,15 +372,17 @@ def _install_repos(args, base_path):
             _write_repo(content, args.output_path)
             content = _get_repo(base_path + 'current-tripleo/delorean.repo',
                                 args)
-            content = TITLE_RE.sub('[delorean-current-tripleo]', content)
+            content = TITLE_RE.sub('[\\1-current-tripleo]', content)
+            content = NAME_RE.sub('name=\\1-current-tripleo', content)
             # We need to twiddle priorities since we're mixing multiple repos
             # that are generated with the same priority.
             content = _change_priority(content, 20)
-            _write_repo(content, args.output_path)
+            _write_repo(content, args.output_path,
+                        name='delorean-current-tripleo')
             content = _get_repo(base_path + 'current/delorean.repo', args)
-            content += '\n%s' % INCLUDE_PKGS
+            content = _add_includepkgs(content)
             content = _change_priority(content, 10)
-            _write_repo(content, args.output_path)
+            _write_repo(content, args.output_path, name='delorean')
         elif repo == 'tripleo-ci-testing':
             content = _get_repo(base_path + 'tripleo-ci-testing/delorean.repo',
                                 args)
