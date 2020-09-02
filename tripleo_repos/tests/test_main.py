@@ -327,7 +327,7 @@ class TestTripleORepos(testtools.TestCase):
         main._install_repos(args, 'roads/')
         expected_repo = ('\n[tripleo-centos-opstools]\n'
                          'name=tripleo-centos-opstools\n'
-                         'baseurl=http://foo/centos/7/opstools/x86_64/\n'
+                         'baseurl=http://foo/centos/7/opstools/$basearch/\n'
                          'gpgcheck=0\n'
                          'enabled=1\n')
         mock_write.assert_called_once_with(expected_repo,
@@ -437,7 +437,7 @@ enabled=1
         expected_repo = '''
 [tripleo-centos-ceph-jewel]
 name=tripleo-centos-ceph-jewel
-baseurl=http://foo/centos/8/storage/x86_64/ceph-jewel/
+baseurl=http://foo/centos/8/storage/$basearch/ceph-jewel/
 gpgcheck=0
 enabled=1
 '''

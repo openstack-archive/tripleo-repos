@@ -46,14 +46,14 @@ DEFAULT_MIRROR_MAP = {
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
 name=tripleo-centos-ceph-%(ceph_release)s
-baseurl=%(mirror)s/centos/%(centos_release)s/storage/x86_64/ceph-%(ceph_release)s/
+baseurl=%(mirror)s/centos/%(centos_release)s/storage/$basearch/ceph-%(ceph_release)s/
 gpgcheck=0
 enabled=1
 '''
 OPSTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-opstools]
 name=tripleo-centos-opstools
-baseurl=%s/centos/7/opstools/x86_64/
+baseurl=%s/centos/7/opstools/$basearch/
 gpgcheck=0
 enabled=1
 '''
@@ -61,7 +61,7 @@ enabled=1
 HIGHAVAILABILITY_REPO_TEMPLATE = '''
 [tripleo-centos-highavailability]
 name=tripleo-centos-highavailability
-baseurl=%s/centos/8/HighAvailability/x86_64/os/
+baseurl=%s/centos/8/HighAvailability/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
@@ -69,7 +69,7 @@ enabled=1
 POWERTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-powertools]
 name=tripleo-centos-powertools
-baseurl=%s/centos/8/PowerTools/x86_64/os/
+baseurl=%s/centos/8/PowerTools/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
