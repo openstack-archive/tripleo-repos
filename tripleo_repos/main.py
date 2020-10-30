@@ -53,7 +53,7 @@ enabled=1
 OPSTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-opstools]
 name=tripleo-centos-opstools
-baseurl=%s/centos/7/opstools/$basearch/
+baseurl=%(mirror)s/centos/7/opstools/$basearch/
 gpgcheck=0
 enabled=1
 '''
@@ -61,7 +61,7 @@ enabled=1
 HIGHAVAILABILITY_REPO_TEMPLATE = '''
 [tripleo-centos-highavailability]
 name=tripleo-centos-highavailability
-baseurl=%s/centos/8/HighAvailability/$basearch/os/
+baseurl=%(mirror)s/centos/%(stream)s/HighAvailability/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
@@ -69,7 +69,7 @@ enabled=1
 POWERTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-powertools]
 name=tripleo-centos-powertools
-baseurl=%s/centos/8/PowerTools/$basearch/os/
+baseurl=%(mirror)s/centos/%(stream)s/PowerTools/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
@@ -170,6 +170,10 @@ def _parse_args():
     parser.add_argument('--rdo-mirror',
                         default=DEFAULT_RDO_MIRROR,
                         help='Server from which to install RDO packages.')
+    parser.add_argument('--stream',
+                        action='store_true',
+                        default=False,
+                        help='Enable stream support for CentOS repos')
 
     args = parser.parse_args()
     args.old_mirror = default_mirror
@@ -404,15 +408,20 @@ def _install_repos(args, base_path):
                 content = _create_ceph(args, 'nautilus')
             _write_repo(content, args.output_path)
         elif repo == 'opstools':
-            content = OPSTOOLS_REPO_TEMPLATE % args.mirror
+            content = OPSTOOLS_REPO_TEMPLATE % {'mirror': args.mirror}
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
     # HA, Powertools are required for CentOS-8
     if args.distro == 'centos8':
-        content = HIGHAVAILABILITY_REPO_TEMPLATE % args.mirror
+        stream = '8'
+        if args.stream:
+            stream = stream + '-stream'
+        content = HIGHAVAILABILITY_REPO_TEMPLATE % {'mirror': args.mirror,
+                                                    'stream': stream}
         _write_repo(content, args.output_path)
-        content = POWERTOOLS_REPO_TEMPLATE % args.mirror
+        content = POWERTOOLS_REPO_TEMPLATE % {'mirror': args.mirror,
+                                              'stream': stream}
         _write_repo(content, args.output_path)
 
 
