@@ -41,7 +41,6 @@ DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
 DEFAULT_MIRROR_MAP = {
     'fedora': 'https://mirrors.fedoraproject.org',
     'centos': 'http://mirror.centos.org',
-    'ubi': 'http://mirror.centos.org',
     'rhel': 'https://trunk.rdoproject.org',
 }
 CEPH_REPO_TEMPLATE = '''
@@ -74,21 +73,6 @@ baseurl=%(mirror)s/centos/%(stream)s/PowerTools/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
-# ubi-8 only
-APPSTREAM_REPO_TEMPLATE = '''
-[AppStream]
-name=CentOS-$releasever - AppStream
-baseurl=%(mirror)s/centos/$releasever/AppStream/$basearch/os/
-gpgcheck=0
-enabled=1
-'''
-BASE_REPO_TEMPLATE = '''
-[BaseOS]
-name=CentOS-$releasever - Base
-baseurl=%(mirror)s/centos/$releasever/BaseOS/$basearch/os/
-gpgcheck=0
-enabled=1
-'''
 
 
 # unversioned fedora added for backwards compatibility
@@ -97,8 +81,7 @@ SUPPORTED_DISTROS = [
     ('centos', '8'),
     ('fedora', '28'),
     ('fedora', ''),
-    ('rhel', '8'),
-    ('ubi', '8')  # a subcase of the rhel distro
+    ('rhel', '8')
 ]
 
 
@@ -127,10 +110,6 @@ def _get_distro():
     # string too
     distro_major_version_id = distro_version_id.split('.')[0]
 
-    # check if that is UBI subcase?
-    if os.path.exists('/etc/yum.repos.d/ubi.repo'):
-        distro_id = 'ubi'
-
     if (distro_id, distro_major_version_id) not in SUPPORTED_DISTROS:
         print(
             "WARNING: Unsupported platform '{}{}' detected by tripleo-repos,"
@@ -138,11 +117,6 @@ def _get_distro():
             "".format(distro_id, distro_major_version_id), file=sys.stderr)
         distro_id = 'centos'
         distro_major_version_id = '7'
-
-    if distro_id == 'ubi':
-        print(
-            "WARNING: Centos{} Base and AppStream will be installed for "
-            "this UBI distro".format(distro_major_version_id))
 
     return distro_id, distro_major_version_id
 
@@ -238,7 +212,7 @@ def _validate_distro_repos(args):
     if 'fedora' in args.distro:
         valid_repos = ['current', 'current-tripleo', 'ceph', 'deps',
                        'tripleo-ci-testing']
-    elif args.distro in ['centos7', 'centos8', 'rhel8', 'ubi8']:
+    elif args.distro in ['centos7', 'centos8', 'rhel8']:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps', 'tripleo-ci-testing',
                        'opstools', 'current-tripleo-rdo']
@@ -293,25 +267,14 @@ def _validate_args(args):
 
 def _remove_existing(args):
     """Remove any delorean* or opstools repos that already exist"""
-    if args.distro == 'ubi8':
-        regex = '^(BaseOS|AppStream|delorean|tripleo-centos-' \
-                '(opstools|ceph|highavailability|powertools)).*.repo'
-    else:
-        regex = '^(delorean|tripleo-centos-' \
-                '(opstools|ceph|highavailability|powertools)).*.repo'
+    regex = '^(delorean|tripleo-centos-' \
+            '(opstools|ceph|highavailability|powertools)).*.repo'
     pattern = re.compile(regex)
-    paths = set(
-        os.listdir(args.output_path) + os.listdir("/etc/distro.repos.d"))
-    for f in paths:
+    for f in os.listdir(args.output_path):
         if pattern.match(f):
             filename = os.path.join(args.output_path, f)
-            if os.path.exists(filename):
-                os.remove(filename)
-                print('Removed old repo "%s"' % filename)
-            filename = os.path.join("/etc/distro.repos.d", f)
-            if os.path.exists(filename):
-                os.remove(filename)
-                print('Removed old repo "%s"' % filename)
+            os.remove(filename)
+            print('Removed old repo "%s"' % filename)
 
 
 def _get_base_path(args):
@@ -319,10 +282,6 @@ def _get_base_path(args):
             args.branch not in ['stein', 'master']:
         raise InvalidArguments('Only stable/stein and master branches'
                                'are supported with fedora28.')
-    if args.distro == 'ubi8':
-        distro = 'centos8'  # there are no base paths for UBI that work well
-    else:
-        distro = args.distro
 
     # The mirror url with /$DISTRO$VERSION path for master branch is
     # deprecated.
@@ -330,7 +289,7 @@ def _get_base_path(args):
     # it should work for every (distro, branch) pair that
     # makes sense
     # Any exception should be corrected at source, not here.
-    distro_branch = '%s-%s' % (distro, args.branch)
+    distro_branch = '%s-%s' % (args.distro, args.branch)
     return '%s/%s/' % (args.rdo_mirror, distro_branch)
 
 
@@ -453,22 +412,8 @@ def _install_repos(args, base_path):
             _write_repo(content, args.output_path)
         else:
             raise InvalidArguments('Invalid repo "%s" specified' % repo)
-
-    distro = args.distro
-    # CentOS-8 AppStream is required for UBI-8
-    if distro == 'ubi8':
-        if args.output_path == DEFAULT_OUTPUT_PATH:
-            distro_path = "/etc/distro.repos.d"
-        else:
-            distro_path = args.output_path
-        content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror}
-        _write_repo(content, distro_path)
-        content = BASE_REPO_TEMPLATE % {'mirror': args.mirror}
-        _write_repo(content, distro_path)
-        distro = 'centos8'  # switch it to continue as centos8 distro
-
     # HA, Powertools are required for CentOS-8
-    if distro == 'centos8':
+    if args.distro == 'centos8':
         stream = '8'
         if args.stream:
             stream = stream + '-stream'

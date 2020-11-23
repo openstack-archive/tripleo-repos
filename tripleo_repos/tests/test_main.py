@@ -89,14 +89,11 @@ class TestTripleORepos(testtools.TestCase):
 
     @mock.patch('os.listdir')
     @mock.patch('os.remove')
-    @mock.patch('os.path.exists')
-    def test_remove_existing(self, mock_exists, mock_remove, mock_listdir):
+    def test_remove_existing(self, mock_remove, mock_listdir):
         fake_list = ['foo.repo', 'delorean.repo',
                      'delorean-current-tripleo.repo',
                      'tripleo-centos-opstools.repo',
                      'tripleo-centos-highavailability.repo']
-        mock_exists.return_value = [True, False, True, False, True,
-                                    False, False, True]
         mock_listdir.return_value = fake_list
         mock_args = mock.Mock()
         mock_args.output_path = '/etc/yum.repos.d'
@@ -110,7 +107,7 @@ class TestTripleORepos(testtools.TestCase):
             mock.call('/etc/yum.repos.d/tripleo-centos-opstools.repo'),
             mock_remove.mock_calls)
         self.assertIn(
-            mock.call('/etc/distro.repos.d/'
+            mock.call('/etc/yum.repos.d/'
                       'tripleo-centos-highavailability.repo'),
             mock_remove.mock_calls)
         self.assertNotIn(mock.call('/etc/yum.repos.d/foo.repo'),
