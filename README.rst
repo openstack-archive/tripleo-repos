@@ -14,6 +14,10 @@ require that to work sanely.
 
 Examples
 --------
+Install TripleO CI testing repos for UBI-8 by the distro specific path::
+
+    tripleo-repos -d ubi8 tripleo-ci-testing --output-path /etc/distro.repos.d
+
 Install current master RDO Trunk repo and the deps repo::
 
     tripleo-repos current
