@@ -170,10 +170,15 @@ def _parse_args():
     parser.add_argument('--rdo-mirror',
                         default=DEFAULT_RDO_MIRROR,
                         help='Server from which to install RDO packages.')
-    parser.add_argument('--stream',
-                        action='store_true',
-                        default=False,
-                        help='Enable stream support for CentOS repos')
+    stream_group = parser.add_mutually_exclusive_group()
+    stream_group.add_argument('--stream',
+                              action='store_true',
+                              default=False,
+                              help='Enable stream support for CentOS repos')
+    stream_group.add_argument('--no-stream',
+                              action='store_true',
+                              default=False,
+                              help='Disable stream support for CentOS repos')
 
     args = parser.parse_args()
     args.old_mirror = default_mirror
@@ -415,7 +420,7 @@ def _install_repos(args, base_path):
     # HA, Powertools are required for CentOS-8
     if args.distro == 'centos8':
         stream = '8'
-        if args.stream:
+        if args.stream and not args.no_stream:
             stream = stream + '-stream'
         content = HIGHAVAILABILITY_REPO_TEMPLATE % {'mirror': args.mirror,
                                                     'stream': stream}
