@@ -94,9 +94,12 @@ class NoRepoTitle(Exception):
 
 
 def _get_distro():
+    """Get distro info from os-release
 
+    returns: distro_id, distro_major_version_id, distro_name
+    """
     output = subprocess.Popen(
-        'source /etc/os-release && echo -e -n "$ID\n$VERSION_ID"',
+        'source /etc/os-release && echo -e -n "$ID\n$VERSION_ID\n$NAME"',
         shell=True,
         stdout=subprocess.PIPE,
         stderr=open(os.devnull, 'w'),
@@ -104,7 +107,7 @@ def _get_distro():
         universal_newlines=True).communicate()
 
     # distro_id and distro_version_id will always be at least an empty string
-    distro_id, distro_version_id = output[0].split('\n')
+    distro_id, distro_version_id, distro_name = output[0].split('\n')
 
     # if distro_version_id is empty string the major version will be empty
     # string too
@@ -118,12 +121,10 @@ def _get_distro():
         distro_id = 'centos'
         distro_major_version_id = '7'
 
-    return distro_id, distro_major_version_id
+    return distro_id, distro_major_version_id, distro_name
 
 
-def _parse_args():
-
-    distro_id, distro_major_version_id = _get_distro()
+def _parse_args(distro_id, distro_major_version_id):
 
     distro = "{}{}".format(distro_id, distro_major_version_id)
 
@@ -264,10 +265,26 @@ def _validate_tripleo_ci_testing(repos):
     return True
 
 
-def _validate_args(args):
+def _validate_distro_stream(args, distro_name):
+    """Validate stream related args vs host
+
+    Fails if stream is to be used but the host isn't a stream OS or vice versa
+    """
+    if args.stream and 'stream' not in distro_name.lower():
+        raise InvalidArguments('--stream provided, but OS is not the Stream '
+                               'version. Please ensure the host is Stream.')
+    elif args.no_stream and 'stream' in distro_name.lower():
+        raise InvalidArguments('--no-stream provided, but OS is the Stream '
+                               'version. Please ensure the host is not the '
+                               'Stream version.')
+    return True
+
+
+def _validate_args(args, distro_name):
     _validate_current_tripleo(args.repos)
     _validate_distro_repos(args)
     _validate_tripleo_ci_testing(args.repos)
+    _validate_distro_stream(args, distro_name)
 
 
 def _remove_existing(args):
@@ -440,8 +457,9 @@ def _run_pkg_clean(distro):
 
 
 def main():
-    args = _parse_args()
-    _validate_args(args)
+    distro_id, distro_major_version_id, distro_name = _get_distro()
+    args = _parse_args(distro_id, distro_major_version_id)
+    _validate_args(args, distro_name)
     base_path = _get_base_path(args)
     if args.distro in ['centos7']:
         _install_priorities()
