@@ -305,7 +305,10 @@ class TestTripleORepos(testtools.TestCase):
             'queens': 'luminous',
             'rocky': 'luminous',
             'stein': 'nautilus',
-            'master': 'nautilus',
+            'train': 'nautilus',
+            'ussuri': 'nautilus',
+            'victoria': 'nautilus',
+            'master': 'octopus',
         }
         args = mock.Mock()
         args.repos = ['ceph']
