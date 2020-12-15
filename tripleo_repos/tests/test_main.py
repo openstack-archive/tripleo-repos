@@ -425,6 +425,7 @@ enabled=1
         args.output_path = 'test'
         args.distro = 'centos8'
         args.stream = True
+        args.no_stream = False
         args.mirror = 'mirror'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
@@ -445,6 +446,41 @@ enabled=1
                               '\n[tripleo-centos-powertools]\n'
                               'name=tripleo-centos-powertools\n'
                               'baseurl=mirror/centos/8-stream/PowerTools'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
+                              'test')
+                          ],
+                         mock_write.mock_calls)
+
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_centos8_no_stream(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['current']
+        args.branch = 'master'
+        args.output_path = 'test'
+        args.distro = 'centos8'
+        args.stream = False
+        args.no_stream = True
+        args.mirror = 'mirror'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        self.assertEqual([mock.call('roads/current/delorean.repo', args),
+                          mock.call('roads/delorean-deps.repo', args),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test',
+                                    name='delorean'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call((
+                              '\n[tripleo-centos-highavailability]\n'
+                              'name=tripleo-centos-highavailability\n'
+                              'baseurl=mirror/centos/8/HighAvailability'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
+                              'test'),
+                          mock.call((
+                              '\n[tripleo-centos-powertools]\n'
+                              'name=tripleo-centos-powertools\n'
+                              'baseurl=mirror/centos/8/PowerTools'
                               '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
                               'test')
                           ],
