@@ -79,7 +79,6 @@ enabled=1
 SUPPORTED_DISTROS = [
     ('centos', '7'),
     ('centos', '8'),
-    ('fedora', '28'),
     ('fedora', ''),
     ('rhel', '8')
 ]
@@ -278,11 +277,6 @@ def _remove_existing(args):
 
 
 def _get_base_path(args):
-    if args.distro == 'fedora28' and \
-            args.branch not in ['stein', 'master']:
-        raise InvalidArguments('Only stable/stein and master branches'
-                               'are supported with fedora28.')
-
     # The mirror url with /$DISTRO$VERSION path for master branch is
     # deprecated.
     # The default for rdo mirrors is $DISTRO$VERSION-$BRANCH
