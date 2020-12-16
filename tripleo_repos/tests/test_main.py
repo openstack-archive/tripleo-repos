@@ -131,20 +131,6 @@ class TestTripleORepos(testtools.TestCase):
         path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/fedora-master/', path)
 
-    def test_get_base_path_fedora_unsup_branch(self):
-        args = mock.Mock()
-        args.branch = 'rocky'
-        args.distro = 'fedora28'
-        self.assertRaises(main.InvalidArguments, main._get_base_path, args)
-
-    def test_get_base_path_fedora_sup_branch(self):
-        args = mock.Mock()
-        args.branch = 'stein'
-        args.distro = 'fedora28'
-        args.rdo_mirror = 'http://trunk.rdoproject.org'
-        path = main._get_base_path(args)
-        self.assertEqual('http://trunk.rdoproject.org/fedora28-stein/', path)
-
     @mock.patch('subprocess.check_call')
     def test_install_priorities(self, mock_check_call):
         main._install_priorities()
