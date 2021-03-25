@@ -468,7 +468,7 @@ def _install_repos(args, base_path):
             elif args.branch in ['stein', 'train', 'ussuri', 'victoria']:
                 content = _create_ceph(args, 'nautilus')
             else:
-                content = _create_ceph(args, 'octopus')
+                content = _create_ceph(args, 'pacific')
             _write_repo(content, args.output_path)
         elif repo == 'opstools':
             content = OPSTOOLS_REPO_TEMPLATE % {'mirror': args.mirror}
