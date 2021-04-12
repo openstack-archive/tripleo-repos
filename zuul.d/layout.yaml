@@ -5,11 +5,13 @@
       - openstack-python3-wallaby-jobs
     check:
       jobs: &cjobs
+        - openstack-tox-py39
         - tripleo-buildimage-overcloud-full-centos-8:
             dependencies: &deps_unit_lint_cprovider
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py38
+              - openstack-tox-py39
         - tripleo-build-containers-ubi-8:
             dependencies: *deps_unit_lint_cprovider
     gate:
