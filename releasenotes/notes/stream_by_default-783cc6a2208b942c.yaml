@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    tripleo-repos now runs with the --stream argument enabled by default. Use
+    the --no-stream argument when using tripleo-repos without CentOS stream.

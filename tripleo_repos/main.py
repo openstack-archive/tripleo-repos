@@ -199,7 +199,7 @@ def _parse_args(distro_id, distro_major_version_id):
     stream_group = parser.add_mutually_exclusive_group()
     stream_group.add_argument('--stream',
                               action='store_true',
-                              default=False,
+                              default=True,
                               help='Enable stream support for CentOS repos')
     stream_group.add_argument('--no-stream',
                               action='store_true',
