@@ -295,10 +295,11 @@ def _validate_distro_stream(args, distro_name):
 
     Fails if stream is to be used but the host isn't a stream OS or vice versa
     """
-    if args.stream and 'stream' not in distro_name.lower():
+    is_stream = args.stream and not args.no_stream
+    if is_stream and 'stream' not in distro_name.lower():
         raise InvalidArguments('--stream provided, but OS is not the Stream '
                                'version. Please ensure the host is Stream.')
-    elif args.no_stream and 'stream' in distro_name.lower():
+    elif not is_stream and 'stream' in distro_name.lower():
         raise InvalidArguments('--no-stream provided, but OS is the Stream '
                                'version. Please ensure the host is not the '
                                'Stream version.')
