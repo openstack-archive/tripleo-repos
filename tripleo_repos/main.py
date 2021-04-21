@@ -207,6 +207,8 @@ def _parse_args(distro_id, distro_major_version_id):
                               help='Disable stream support for CentOS repos')
 
     args = parser.parse_args()
+    if args.no_stream:
+        args.stream = False
     args.old_mirror = default_mirror
 
     return args
