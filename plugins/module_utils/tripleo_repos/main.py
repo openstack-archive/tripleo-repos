@@ -323,6 +323,11 @@ def _validate_distro_stream(args, distro_name, distro_major_version_id):
 
     Fails if stream is to be used but the host isn't a stream OS or vice versa
     """
+    if args.output_path != DEFAULT_OUTPUT_PATH:
+        # don't validate distro name because the output path is not
+        # /etc/yum.repos.d, so the repo files may not be used to install
+        # packages on this host
+        return True
     if 'centos' not in distro_name.lower():
         return True
     if distro_name.lower() == 'centos' and distro_major_version_id != '8':

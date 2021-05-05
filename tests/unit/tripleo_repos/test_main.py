@@ -751,11 +751,13 @@ class TestValidate(testtools.TestCase):
                           self.args, '', '')
 
     def test_invalid_stream(self):
+        self.args.output_path = main.DEFAULT_OUTPUT_PATH
         self.args.stream = True
         self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, 'CentOS 8', '8')
 
     def test_invalid_no_stream(self):
+        self.args.output_path = main.DEFAULT_OUTPUT_PATH
         self.args.stream = False
         self.args.no_stream = True
         self.assertRaises(main.InvalidArguments, main._validate_args,
