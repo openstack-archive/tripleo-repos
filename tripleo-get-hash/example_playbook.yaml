@@ -1,0 +1,40 @@
+---
+- name: Example usage for tripleo-get-hash python module
+  hosts: localhost
+  tasks:
+    - name: get component-ci-testing for victoria compute component
+      tripleo_get_hash:
+        os_version: centos8       # default: centos8
+        release: victoria         # default: master
+        component: compute        # default: None
+        tag: component-ci-testing   # default: current-tripleo
+      register: component_ci_testing_victoria_compute
+
+    - debug:
+        msg: "Centos8 component-ci-testing victoria compute component: {{ component_ci_testing_victoria_compute['full_hash'] }}"
+
+    - debug:
+        var: component_ci_testing_victoria_compute
+
+    - name: get centos7 tripleo-ci-testing for train
+      tripleo_get_hash:
+        os_version: centos7
+        release: train
+        tag: tripleo-ci-testing
+      register: centos7_tripleo_ci_testing_train
+
+    - debug:
+        msg: "Centos7 current-tripleo train: {{ centos7_tripleo_ci_testing_train['full_hash'] }}"
+
+    - debug:
+        var: centos7_tripleo_ci_testing_train
+
+    - name: get current-tripleo centos8 for master branch
+      tripleo_get_hash:
+      register: centos8_current_tripleo_master
+
+    - debug:
+        msg: "Centos8 current-tripleo master: {{ centos8_current_tripleo_master['full_hash'] }}"
+
+    - debug:
+        var: centos8_current_tripleo_master

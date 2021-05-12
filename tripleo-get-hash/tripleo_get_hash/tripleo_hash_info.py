@@ -103,7 +103,7 @@ class TripleOHashInfo:
         result_config = {}
         config_path = ''
         local_config = _resolve_local_config_path()
-        # If we can read /etc/tripleo_get_hash/config.yaml then use that
+        # prefer const.CONFIG_PATH then local_config
         if _check_read_file(const.CONFIG_PATH):
             config_path = const.CONFIG_PATH
         elif local_config:

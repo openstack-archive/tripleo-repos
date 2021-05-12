@@ -30,4 +30,4 @@ CONFIG_KEYS = [
 This is the path that we expect to find the system installed config.yaml.
 The path is specified in [options.data_files] of the project setup.cfg.
 """
-CONFIG_PATH = '/etc/tripleo_get_hash/config.yaml'
+CONFIG_PATH = '/usr/local/etc/tripleo_get_hash/config.yaml'
