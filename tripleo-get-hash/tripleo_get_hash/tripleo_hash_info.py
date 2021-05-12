@@ -87,18 +87,26 @@ class TripleOHashInfo:
                 return True
             return False
 
+        def _resolve_local_config_path():
+            """ For running from source checkout, try ../config.yaml. For
+                pip install (--user) try ../etc/tripleo_get_hash/config.yaml
+            """
+            for _path in ['config.yaml', 'etc/tripleo_get_hash/config.yaml']:
+                _local_config = os.path.join(
+                    os.path.split(os.path.split(
+                        os.path.abspath(__file__)
+                    )[0])[0], "{}".format(_path)
+                )
+                if _check_read_file(_local_config):
+                    return _local_config
+
         result_config = {}
         config_path = ''
-        # if this isn't installed and running from a source checkout then
-        # try to use local ../config.yaml
-        local_config = os.path.join(
-            os.path.split(os.path.split(os.path.abspath(__file__))[0])[0],
-            'config.yaml'
-        )
+        local_config = _resolve_local_config_path()
         # If we can read /etc/tripleo_get_hash/config.yaml then use that
         if _check_read_file(const.CONFIG_PATH):
             config_path = const.CONFIG_PATH
-        elif _check_read_file(local_config):
+        elif local_config:
             config_path = local_config
         else:
             raise exc.TripleOHashMissingConfig(
