@@ -10,6 +10,8 @@ tripleo_releases:
   - victoria
   - ussuri
   - train
+  - stein
+  - queens
   - osp16-2
   - osp17
 
