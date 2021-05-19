@@ -89,9 +89,10 @@ class TripleOHashInfo:
 
         def _resolve_local_config_path():
             """ For running from source checkout, try ../config.yaml. For
-                pip install (--user) try ../etc/tripleo_get_hash/config.yaml
+                pip install (--user) try ../local/etc/tripleo_get_hash/
             """
-            for _path in ['config.yaml', 'etc/tripleo_get_hash/config.yaml']:
+            for _path in ['config.yaml',
+                          'usr/local/etc/tripleo_get_hash/config.yaml']:
                 _local_config = os.path.join(
                     os.path.split(os.path.split(
                         os.path.abspath(__file__)
