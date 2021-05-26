@@ -81,6 +81,7 @@ name=CentOS-$releasever - AppStream
 baseurl=%(mirror)s/centos/$releasever/AppStream/$basearch/os/
 gpgcheck=0
 enabled=1
+%(extra)s
 '''
 BASE_REPO_TEMPLATE = '''
 [BaseOS]
@@ -492,7 +493,14 @@ def _install_repos(args, base_path):
             distro_path = "/etc/distro.repos.d"
         else:
             distro_path = args.output_path
-        content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror}
+        # TODO: Remove it once bugs are fixed
+        # Add extra options to APPSTREAM_REPO_TEMPLATE because of
+        # rhbz/1961558 and lpbz/1929634
+        extra = ''
+        if args.branch in ['train', 'ussuri', 'victoria']:
+            extra = 'exclude=edk2-ovmf-20200602gitca407c7246bf-5*'
+        content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror,
+                                             'extra': extra}
         _write_repo(content, distro_path)
         content = BASE_REPO_TEMPLATE % {'mirror': args.mirror}
         _write_repo(content, distro_path)
