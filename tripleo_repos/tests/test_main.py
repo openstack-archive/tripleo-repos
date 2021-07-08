@@ -19,32 +19,26 @@ from unittest import mock
 import ddt
 import testtools
 
-from tripleo_repos.generate_repos import GenerateRepos
-
-import tripleo_repos.exceptions as E
-import tripleo_repos.constants as C
+from tripleo_repos import main
 
 
 @ddt.ddt
 class TestTripleORepos(testtools.TestCase):
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_distro')
+    @mock.patch('tripleo_repos.main._get_distro')
     @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'centos7'])
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._run_pkg_clean')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._validate_args')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_base_path')
-    @mock.patch(
-        'tripleo_repos.generate_repos.GenerateRepos._install_priorities')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._remove_existing')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._install_repos')
+    @mock.patch('tripleo_repos.main._run_pkg_clean')
+    @mock.patch('tripleo_repos.main._validate_args')
+    @mock.patch('tripleo_repos.main._get_base_path')
+    @mock.patch('tripleo_repos.main._install_priorities')
+    @mock.patch('tripleo_repos.main._remove_existing')
+    @mock.patch('tripleo_repos.main._install_repos')
     def test_main(self, mock_install, mock_remove, mock_ip, mock_gbp,
                   mock_validate, mock_clean, mock_distro):
         mock_distro.return_value = ('centos', '8', 'CentOS 8')
-
-        self.cmd = GenerateRepos(None, None)
-        args = self.cmd.get_parser('NAME').parse_args()
+        args = main._parse_args('centos', '8')
         mock_path = mock.Mock()
         mock_gbp.return_value = mock_path
-        self.cmd.run(args)
+        main.main()
         mock_validate.assert_called_once_with(args, 'CentOS 8')
         mock_gbp.assert_called_once_with(args)
         mock_ip.assert_called_once_with()
@@ -52,23 +46,21 @@ class TestTripleORepos(testtools.TestCase):
         mock_install.assert_called_once_with(args, mock_path)
         mock_clean.assert_called_once_with('centos7')
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_distro')
+    @mock.patch('tripleo_repos.main._get_distro')
     @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'fedora'])
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._run_pkg_clean')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._validate_args')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_base_path')
-    @mock.patch(
-        'tripleo_repos.generate_repos.GenerateRepos._install_priorities')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._remove_existing')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._install_repos')
+    @mock.patch('tripleo_repos.main._run_pkg_clean')
+    @mock.patch('tripleo_repos.main._validate_args')
+    @mock.patch('tripleo_repos.main._get_base_path')
+    @mock.patch('tripleo_repos.main._install_priorities')
+    @mock.patch('tripleo_repos.main._remove_existing')
+    @mock.patch('tripleo_repos.main._install_repos')
     def test_main_fedora(self, mock_install, mock_remove, mock_ip, mock_gbp,
                          mock_validate, mock_clean, mock_distro):
         mock_distro.return_value = ('centos', '8', 'CentOS 8')
-        self.cmd = GenerateRepos(None, None)
-        args = self.cmd.get_parser('NAME').parse_args()
+        args = main._parse_args('centos', '8')
         mock_path = mock.Mock()
         mock_gbp.return_value = mock_path
-        self.cmd.run(args)
+        main.main()
         mock_validate.assert_called_once_with(args, 'CentOS 8')
         mock_gbp.assert_called_once_with(args)
         assert not mock_ip.called, '_install_priorities should no tbe called'
@@ -85,8 +77,7 @@ class TestTripleORepos(testtools.TestCase):
         fake_addr = 'http://lone/pine/mall'
         args = mock.Mock()
         args.distro = 'centos'
-        cmd = GenerateRepos(None, None)
-        content = cmd._get_repo(fake_addr, args)
+        content = main._get_repo(fake_addr, args)
         self.assertEqual('88MPH', content)
         mock_get.assert_called_once_with(fake_addr)
 
@@ -96,8 +87,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_response.status_code = 404
         mock_get.return_value = mock_response
         fake_addr = 'http://twin/pines/mall'
-        cmd = GenerateRepos(None, None)
-        cmd._get_repo(fake_addr, mock.Mock())
+        main._get_repo(fake_addr, mock.Mock())
         mock_get.assert_called_once_with(fake_addr)
         mock_response.raise_for_status.assert_called_once_with()
 
@@ -114,8 +104,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_listdir.return_value = fake_list
         mock_args = mock.Mock()
         mock_args.output_path = '/etc/yum.repos.d'
-        cmd = GenerateRepos(None, None)
-        cmd._remove_existing(mock_args)
+        main._remove_existing(mock_args)
         self.assertIn(mock.call('/etc/yum.repos.d/delorean.repo'),
                       mock_remove.mock_calls)
         self.assertIn(mock.call('/etc/yum.repos.d/'
@@ -138,8 +127,7 @@ class TestTripleORepos(testtools.TestCase):
         args.branch = 'master'
         args.distro = 'centos7'
         args.rdo_mirror = 'http://trunk.rdoproject.org'
-        cmd = GenerateRepos(None, None)
-        path = cmd._get_base_path(args)
+        path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/centos7-master/', path)
 
     def test_get_base_path_fedora(self):
@@ -147,34 +135,30 @@ class TestTripleORepos(testtools.TestCase):
         args.branch = 'master'
         args.distro = 'fedora'
         args.rdo_mirror = 'http://trunk.rdoproject.org'
-        cmd = GenerateRepos(None, None)
-        path = cmd._get_base_path(args)
+        path = main._get_base_path(args)
         self.assertEqual('http://trunk.rdoproject.org/fedora-master/', path)
 
     @mock.patch('subprocess.check_call')
     def test_install_priorities(self, mock_check_call):
-        cmd = GenerateRepos(None, None)
-        cmd._install_priorities()
+        main._install_priorities()
         mock_check_call.assert_called_once_with(['yum', 'install', '-y',
                                                  'yum-plugin-priorities'])
 
     @mock.patch('subprocess.check_call')
     def test_install_priorities_fails(self, mock_check_call):
         mock_check_call.side_effect = subprocess.CalledProcessError(88, '88')
-        cmd = GenerateRepos(None, None)
         self.assertRaises(subprocess.CalledProcessError,
-                          cmd._install_priorities)
+                          main._install_priorities)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
                           mock.call('roads/delorean-deps.repo', args),
                           ],
@@ -185,16 +169,15 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_mitaka(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
         args.branch = 'mitaka'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
                           mock.call('roads/delorean-deps.repo', args),
                           ],
@@ -205,30 +188,28 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_deps(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['deps']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean-deps]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         mock_get.assert_called_once_with('roads/delorean-deps.repo', args)
         mock_write.assert_called_once_with('[delorean-deps]\nMr. Fusion',
                                            'test')
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_tripleo(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current-tripleo']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current-tripleo/delorean.repo',
                                     args),
                           mock.call('roads/delorean-deps.repo', args),
@@ -239,16 +220,15 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_tripleo_dev(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current-tripleo-dev']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         mock_get.assert_any_call('roads/delorean-deps.repo', args)
         # This is the wrong name for the deps repo, but I'm not bothered
         # enough by that to mess with mocking multiple different calls.
@@ -260,19 +240,18 @@ class TestTripleORepos(testtools.TestCase):
         mock_get.assert_called_with('roads/current/delorean.repo', args)
         mock_write.assert_called_with('[delorean]\npriority=10\n%s\n'
                                       'Mr. Fusion' %
-                                      C.INCLUDE_PKGS, 'test',
+                                      main.INCLUDE_PKGS, 'test',
                                       name='delorean')
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_tripleo_ci_testing(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['tripleo-ci-testing']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/tripleo-ci-testing/delorean.repo',
                                     args),
                           mock.call('roads/delorean-deps.repo', args),
@@ -283,16 +262,15 @@ class TestTripleORepos(testtools.TestCase):
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_current_tripleo_rdo(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current-tripleo-rdo']
         args.branch = 'master'
         args.output_path = 'test'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current-tripleo-rdo/delorean.repo',
                                     args),
                           mock.call('roads/delorean-deps.repo', args),
@@ -305,8 +283,8 @@ class TestTripleORepos(testtools.TestCase):
 
     @ddt.data('liberty', 'mitaka', 'newton', 'ocata', 'pike', 'queens',
               'rocky', 'stein', 'master')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._create_ceph')
+    @mock.patch('tripleo_repos.main._write_repo')
+    @mock.patch('tripleo_repos.main._create_ceph')
     def test_install_repos_ceph(self,
                                 branch,
                                 mock_create_ceph,
@@ -331,20 +309,18 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         mock_repo = '[centos-ceph-luminous]\nMr. Fusion'
         mock_create_ceph.return_value = mock_repo
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         mock_create_ceph.assert_called_once_with(args, ceph_release[branch])
         mock_write_repo.assert_called_once_with(mock_repo, 'test')
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_opstools(self, mock_write):
         args = mock.Mock()
         args.repos = ['opstools']
         args.branch = 'master'
         args.output_path = 'test'
         args.mirror = 'http://foo'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         expected_repo = ('\n[tripleo-centos-opstools]\n'
                          'name=tripleo-centos-opstools\n'
                          'baseurl=http://foo/centos/7/opstools/$basearch/\n'
@@ -354,7 +330,7 @@ class TestTripleORepos(testtools.TestCase):
                                            'test')
 
     @mock.patch('requests.get')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_deps_mirror(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['deps']
@@ -389,20 +365,18 @@ enabled=1
 '''
         mock_get.return_value = mock.Mock(text=fake_repo,
                                           status_code=200)
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         mock_write.assert_called_once_with(expected_repo,
                                            'test')
 
     def test_install_repos_invalid(self):
         args = mock.Mock()
         args.repos = ['roads?']
-        cmd = GenerateRepos(None, None)
-        self.assertRaises(E.InvalidArguments, cmd._install_repos, args,
+        self.assertRaises(main.InvalidArguments, main._install_repos, args,
                           'roads/')
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_centos8(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
@@ -412,8 +386,7 @@ enabled=1
         args.stream = False
         args.mirror = 'mirror'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
                           mock.call('roads/delorean-deps.repo', args),
                           ],
@@ -436,8 +409,8 @@ enabled=1
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_centos8_stream(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
@@ -448,8 +421,7 @@ enabled=1
         args.no_stream = False
         args.mirror = 'mirror'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
                           mock.call('roads/delorean-deps.repo', args),
                           ],
@@ -472,8 +444,8 @@ enabled=1
                           ],
                          mock_write.mock_calls)
 
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._get_repo')
-    @mock.patch('tripleo_repos.generate_repos.GenerateRepos._write_repo')
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
     def test_install_repos_centos8_no_stream(self, mock_write, mock_get):
         args = mock.Mock()
         args.repos = ['current']
@@ -484,8 +456,7 @@ enabled=1
         args.no_stream = True
         args.mirror = 'mirror'
         mock_get.return_value = '[delorean]\nMr. Fusion'
-        cmd = GenerateRepos(None, None)
-        cmd._install_repos(args, 'roads/')
+        main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
                           mock.call('roads/delorean-deps.repo', args),
                           ],
@@ -510,25 +481,20 @@ enabled=1
 
     def test_write_repo(self):
         m = mock.mock_open()
-        with mock.patch('builtins.open', m):
-            cmd = GenerateRepos(None, None)
-            cmd._write_repo('#Doc\n[delorean]\nThis=Heavy', 'test')
-
-        m.assert_called_with('test/delorean.repo', 'w')
+        with mock.patch('tripleo_repos.main.open', m, create=True):
+            main._write_repo('#Doc\n[delorean]\nThis=Heavy', 'test')
+        m.assert_called_once_with('test/delorean.repo', 'w')
         m().write.assert_called_once_with('#Doc\n[delorean]\nThis=Heavy')
 
     def test_write_repo_invalid(self):
-        self.assertRaises(E.NoRepoTitle,
-                          GenerateRepos(None, None)._write_repo, 'Great Scot!',
+        self.assertRaises(main.NoRepoTitle, main._write_repo, 'Great Scot!',
                           'test')
 
     def test_parse_args(self):
         with mock.patch.object(sys, 'argv', ['', 'current', 'deps', '-d',
                                              'centos7', '-b', 'liberty',
                                              '-o', 'test']):
-
-            cmd = GenerateRepos(None, None)
-            args = cmd.get_parser('NAME').parse_args()
+            args = main._parse_args('centos', '8')
         self.assertEqual(['current', 'deps'], args.repos)
         self.assertEqual('centos7', args.distro)
         self.assertEqual('liberty', args.branch)
@@ -539,41 +505,35 @@ enabled=1
                                              'centos7', '--branch',
                                              'mitaka', '--output-path',
                                              'test']):
-            cmd = GenerateRepos(None, None)
-            args = cmd.get_parser('NAME').parse_args()
+            args = main._parse_args('centos', '8')
         self.assertEqual(['current'], args.repos)
         self.assertEqual('centos7', args.distro)
         self.assertEqual('mitaka', args.branch)
         self.assertEqual('test', args.output_path)
 
     def test_change_priority(self):
-        cmd = GenerateRepos(None, None)
-        result = cmd._change_priority('[delorean]\npriority=1', 10)
+        result = main._change_priority('[delorean]\npriority=1', 10)
         self.assertEqual('[delorean]\npriority=10', result)
 
     def test_change_priority_none(self):
-        cmd = GenerateRepos(None, None)
-        result = cmd._change_priority('[delorean]', 10)
+        result = main._change_priority('[delorean]', 10)
         self.assertEqual('[delorean]\npriority=10', result)
 
     def test_change_priority_none_muilti(self):
         data = "[repo1]\n[repo2]\n"
         expected = "[repo1]\n{0}\n[repo2]\n{0}\n".format("priority=10")
-        cmd = GenerateRepos(None, None)
-        result = cmd._change_priority(data, 10)
+        result = main._change_priority(data, 10)
         self.assertEqual(expected, result)
 
     def test_add_includepkgs(self):
         data = "[repo1]\n[repo2]"
-        expected = "[repo1]\n{0}\n[repo2]\n{0}".format(C.INCLUDE_PKGS)
-        cmd = GenerateRepos(None, None)
-        result = cmd._add_includepkgs(data)
+        expected = "[repo1]\n{0}\n[repo2]\n{0}".format(main.INCLUDE_PKGS)
+        result = main._add_includepkgs(data)
         self.assertEqual(expected, result)
 
     def test_create_ceph(self):
         mock_args = mock.Mock(mirror='http://foo')
-        cmd = GenerateRepos(None, None)
-        result = cmd._create_ceph(mock_args, 'jewel')
+        result = main._create_ceph(mock_args, 'jewel')
         expected_repo = '''
 [tripleo-centos-ceph-jewel]
 name=tripleo-centos-ceph-jewel
@@ -608,8 +568,7 @@ enabled=1
                               rdo_mirror='http://bar',
                               distro='centos',
                               old_mirror='http://mirror.centos.org')
-        cmd = GenerateRepos(None, None)
-        result = cmd._inject_mirrors(start_repo, mock_args)
+        result = main._inject_mirrors(start_repo, mock_args)
         self.assertEqual(expected, result)
 
     def test_inject_mirrors_rhel(self):
@@ -637,8 +596,7 @@ enabled=1
                               rdo_mirror='http://bar',
                               distro='rhel',
                               old_mirror='https://some')
-        cmd = GenerateRepos(None, None)
-        result = cmd._inject_mirrors(start_repo, mock_args)
+        result = main._inject_mirrors(start_repo, mock_args)
         self.assertEqual(expected, result)
 
     def test_inject_mirrors_no_match(self):
@@ -652,28 +610,24 @@ enabled=1
                               distro='centos')
         # If a user has a mirror whose repos already point at itself then
         # the _inject_mirrors call should be a noop.
-        cmd = GenerateRepos(None, None)
-        self.assertEqual(start_repo, cmd._inject_mirrors(start_repo,
-                                                         mock_args))
+        self.assertEqual(start_repo, main._inject_mirrors(start_repo,
+                                                          mock_args))
 
     @mock.patch('subprocess.check_call')
     def test_run_pkg_clean(self, mock_check_call):
-        cmd = GenerateRepos(None, None)
-        cmd._run_pkg_clean('centos7')
+        main._run_pkg_clean('centos7')
         mock_check_call.assert_called_once_with(['yum', 'clean', 'metadata'])
 
     @mock.patch('subprocess.check_call')
     def test_run_pkg_clean_fedora(self, mock_check_call):
-        cmd = GenerateRepos(None, None)
-        cmd._run_pkg_clean('fedora')
+        main._run_pkg_clean('fedora')
         mock_check_call.assert_called_once_with(['dnf', 'clean', 'metadata'])
 
     @mock.patch('subprocess.check_call')
     def test_run_pkg_clean_fails(self, mock_check_call):
         mock_check_call.side_effect = subprocess.CalledProcessError(88, '88')
-        cmd = GenerateRepos(None, None)
         self.assertRaises(subprocess.CalledProcessError,
-                          cmd._run_pkg_clean, ['centos7'])
+                          main._run_pkg_clean, ['centos7'])
 
 
 class TestValidate(testtools.TestCase):
@@ -685,69 +639,68 @@ class TestValidate(testtools.TestCase):
         self.args.distro = 'centos7'
         self.args.stream = False
         self.args.no_stream = False
-        self.cmd = GenerateRepos(None, None)
 
     def test_good(self):
-        self.cmd._validate_args(self.args, '')
+        main._validate_args(self.args, '')
 
     def test_current_and_tripleo_dev(self):
         self.args.repos = ['current', 'current-tripleo-dev']
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, '')
 
     def test_tripleo_ci_testing_and_current_tripleo(self):
         self.args.repos = ['current-tripleo', 'tripleo-ci-testing']
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, '')
 
     def test_tripleo_ci_testing_and_ceph_opstools_allowed(self):
         self.args.repos = ['ceph', 'opstools', 'tripleo-ci-testing']
-        self.cmd._validate_args(self.args, '')
+        main._validate_args(self.args, '')
 
     def test_tripleo_ci_testing_and_deps_allowed(self):
         self.args.repos = ['deps', 'tripleo-ci-testing']
-        self.cmd._validate_args(self.args, '')
+        main._validate_args(self.args, '')
 
     def test_ceph_and_tripleo_dev(self):
         self.args.repos = ['current-tripleo-dev', 'ceph']
-        self.args.output_path = C.DEFAULT_OUTPUT_PATH
-        self.cmd._validate_args(self.args, '')
+        self.args.output_path = main.DEFAULT_OUTPUT_PATH
+        main._validate_args(self.args, '')
 
     def test_deps_and_tripleo_dev(self):
         self.args.repos = ['deps', 'current-tripleo-dev']
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, '')
 
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, '')
 
     def test_deps_and_tripleo_allowed(self):
         self.args.repos = ['deps', 'current-tripleo']
-        self.cmd._validate_args(self.args, '')
+        main._validate_args(self.args, '')
 
     def test_invalid_distro(self):
         self.args.distro = 'Jigawatts 1.21'
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, '')
 
     def test_invalid_stream(self):
         self.args.stream = True
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, 'CentOS 8')
 
     def test_invalid_no_stream(self):
         self.args.stream = False
         self.args.no_stream = True
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_args,
+        self.assertRaises(main.InvalidArguments, main._validate_args,
                           self.args, 'CentOS 8 Stream')
 
     def test_validate_distro_repos(self):
-        self.assertTrue(self.cmd._validate_distro_repos(self.args))
+        self.assertTrue(main._validate_distro_repos(self.args))
 
     def test_validate_distro_repos_fedora_tripleo_dev(self):
         self.args.distro = 'fedora'
         self.args.repos = ['current-tripleo-dev']
-        self.assertRaises(E.InvalidArguments, self.cmd._validate_distro_repos,
+        self.assertRaises(main.InvalidArguments, main._validate_distro_repos,
                           self.args)
