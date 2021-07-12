@@ -12,24 +12,24 @@ repos, yum modules and yum global configuration file.
 It is possible to use *tripleo-yum-config* as a standalone module by cloning
 its repository and invoking in command line:
 * **repo**
-  
+
   This subcommand lets you enable or disable a repo and sets its configuration options.
   The *tripleo-yum-config* module will search for the provided repo name in all *.repo* files at REPO_DIR_PATH.
   Optionally, you can provide a dir path where your repo files live or specify the full path of the repo file.
   By default REPO_DIR_PATH is set to */etc/yum.repod.d/*.
-  
+
   Examples:
   ```
   sudo python -m tripleo_yum_config repo appstream --enable --set-opts baseurl=http://newbaseurl exclude="package*"
   sudo python -m tripleo_yum_config repo epel --disable --config-dir-path=/path/to/yum.repos.d
   ```
 * **module**
-  
+
   This subcommand lets you enable, disable, remove, install or reset a module.
   Depending on the selected operation and module, the optional parameters 'stream' or 'profile' will also need to be provided:
   1. when enabling a module, the *stream* version will be required if the module has zero or more than one default stream.
   2. when installing a module, the *profile* will be required if the enabled stream has no default profile set.
-  
+
   Examples:
   ```
   sudo python -m tripleo_yum_config module remove tomcat
@@ -38,12 +38,12 @@ its repository and invoking in command line:
   sudo python -m tripleo_yum_config module install nginx --profile common
   ```
 * **global**
-  
+
   This subcommand lets you set any global yum/dnf configuration value under *[main]* section.
   If no configuration file is found by the module, a new one is created and populated.
   Optionally you can also provide the path to the configuration file.
   By default CONFIG_FILE_PATH is set to */etc/yum.conf*
-  
+
   Example:
   ```
   sudo python -m tripleo_yum_config global --set-opts keepcache=1 cachedir="/var/cache/dnf"
@@ -72,3 +72,14 @@ invoke *tripleo-yum-config --help* to see all the available commands.
 ```
 tripleo-yum-config --help
 ```
+
+## Ansible Module
+
+An ansible module [tripleo_yum_config](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-yum-config/tripleo_yum_config.py)
+is available for you when you install tripleo-yum-config, either by using
+setup.py or pip. The module is installed at the relative path
+*share/ansible/plugins/modules*, which may land on a different directory,
+depending on how you are installing this package. Check your ansible
+configuration to see if the directory is included in your ansible library path.
+An [example playbook](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-yum-config/example_playbook.yaml)
+is available to assist on module usage.
