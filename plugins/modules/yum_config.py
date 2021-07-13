@@ -29,49 +29,42 @@ options:
         description:
           - Name of the repo or module to be changed. This options is
             mandatory only for repo and module types.
-        required: false
         type: str
     enabled:
         description:
           - Change the yum repo or module to enabled or disabled.
           - This options is ignored for yum global configuration.
-        required: false
         type: bool
+        default: true
     operation:
         description:
           - Operation to be execute within a dnf module.
-        required: false
         type: str
         choices: [install, remove, reset]
     stream:
         description:
           - Sets a module stream. This options is recommended when enabling a
             module that doesn't have a default stream.
-        required: false
         type: str
     profile:
         description:
           - Sets a module profile. This options is recommended when installing
             a module that doesn't have a default profile.
-        required: false
         type: str
     set_options:
         description:
           - Dictionary with options to be updated. All dictionary values must
             be string or list of strings.
-        required: false
         type: dict
     file_path:
         description:
           - Absolute path of the configuration file to be changed.
-        required: false
-        type: str
+        type: path
     dir_path:
         description:
           - Absolute path of the directory that contains the configuration
             file to be changed.
-        required: false
-        type: str
+        type: path
 
 author:
     - Douglas Viroel (@viroel)
@@ -122,6 +115,8 @@ EXAMPLES = r'''
       keepcache: "0"
 '''
 
+RETURN = r''' # '''
+
 from ansible.module_utils.basic import AnsibleModule  # noqa: E402
 
 
@@ -131,64 +126,37 @@ def run_module():
     supported_module_operations = ['install', 'remove', 'reset']
     module_args = dict(
         type=dict(type='str', required=True, choices=supported_config_types),
-        name=dict(type='str', required=False),
-        enabled=dict(type='bool', required=False),
-        operation=dict(type='str', required=False,
-                       choices=supported_module_operations),
-        stream=dict(type='str', required=False),
-        profile=dict(type='str', required=False),
-        set_options=dict(type='dict', required=False),
-        file_path=dict(type='str', required=False),
-        dir_path=dict(type='str', required=False),
-    )
-
-    result = dict(
-        changed=False,
-        msg=''
+        name=dict(type='str'),
+        enabled=dict(type='bool', default=True),
+        operation=dict(type='str', choices=supported_module_operations),
+        stream=dict(type='str'),
+        profile=dict(type='str'),
+        set_options=dict(type='dict', default={}),
+        file_path=dict(type='path'),
+        dir_path=dict(type='path'),
     )
 
     module = AnsibleModule(
         argument_spec=module_args,
-        supports_check_mode=True
+        required_if=[
+            ["type", "repo", ["name"]],
+            ["type", "module", ["name"]],
+        ],
+        supports_check_mode=False
     )
 
-    m_type = module.params.get('type')
-    m_name = module.params.get('name')
-    m_set_opts = module.params.get('set_options', {})
-    m_enabled = module.params.get('enabled')
-    m_file_path = module.params.get('file_path')
-    m_dir_path = module.params.get('dir_path')
-
-    # Sanity checks
-    if m_type in ['repo', 'module'] and m_name is None:
-        result['msg'] = (
-            "The parameter 'name' is mandatory when 'type' is set to 'repo' "
-            "or 'module'.")
-        module.fail_json(**result)
-
-    # 'set_options' expects a dict that can hold, as value, strings and list
-    # of strings. List of strings will be converted to a comma-separated list.
-    invalid_set_opts_msg = (
-        "The provided value for 'set_options' parameter has an invalid "
-        "format. All dict values must be string or a list of strings.")
+    # 'set_options' expects a dict that can also contains a list of values.
+    # List of elements will be converted to a comma-separated list
+    m_set_opts = module.params.get('set_options')
     if m_set_opts:
         for k, v in m_set_opts.items():
             if isinstance(v, list):
-                if not all(isinstance(elem, str) for elem in v):
-                    result['msg'] = invalid_set_opts_msg
-                    module.fail_json(**result)
-                m_set_opts[k] = ','.join(v)
+                m_set_opts[k] = ','.join([str(elem) for elem in v])
             elif not isinstance(v, str):
-                result['msg'] = invalid_set_opts_msg
-                module.fail_json(**result)
-
-    if module.check_mode:
-        # Checks were already made above
-        module.exit_json(**result)
+                m_set_opts[k] = str(v)
 
     # Module execution
     try:
-
         try:
             import ansible_collections.tripleo.repos.plugins.module_utils.\
                 tripleo_repos.yum_config.dnf_manager as dnf_mgr
@@ -198,42 +166,46 @@ def run_module():
             import tripleo_repos.yum_config.dnf_manager as dnf_mgr
             import tripleo_repos.yum_config.yum_config as cfg
 
-        if m_type == 'repo':
+        if module.params['type'] == 'repo':
             config_obj = cfg.TripleOYumRepoConfig(
-                file_path=m_file_path,
-                dir_path=m_dir_path)
-            config_obj.update_section(m_name, m_set_opts, enable=m_enabled)
+                file_path=module.params['file_path'],
+                dir_path=module.params['dir_path'])
+            config_obj.update_section(
+                module.params['name'],
+                m_set_opts,
+                enable=module.params['enabled'])
 
-        elif m_type == 'module':
+        elif module.params['type'] == 'module':
             dnf_mod_mgr = dnf_mgr.DnfModuleManager()
-            m_stream = module.params.get('stream')
-            m_profile = module.params.get('profile')
-            if m_enabled is True:
-                dnf_mod_mgr.enable_module(m_name,
-                                          stream=m_stream,
-                                          profile=m_profile)
-            elif m_enabled is False:
-                dnf_mod_mgr.disable_module(m_name,
-                                           stream=m_stream,
-                                           profile=m_profile)
-            m_operation = module.params.get('operation')
-            if m_operation:
-                dnf_method = getattr(dnf_mod_mgr, m_operation + "_module")
-                dnf_method(m_name, stream=m_stream, profile=m_profile)
+            if module.params['enabled']:
+                dnf_mod_mgr.enable_module(module.params['name'],
+                                          stream=module.params['stream'],
+                                          profile=module.params['profile'])
+            else:
+                dnf_mod_mgr.disable_module(module.params['name'],
+                                           stream=module.params['stream'],
+                                           profile=module.params['profile'])
+            if module.params['operation']:
+                dnf_method = getattr(dnf_mod_mgr,
+                                     module.params['operation'] + "_module")
+                dnf_method(module.params['name'],
+                           stream=module.params['stream'],
+                           profile=module.params['profile'])
 
-        elif m_type == 'global':
-            config_obj = cfg.TripleOYumGlobalConfig(file_path=m_file_path)
+        elif module.params['type'] == 'global':
+            config_obj = cfg.TripleOYumGlobalConfig(
+                file_path=module.params['file_path'])
             config_obj.update_section('main', m_set_opts)
 
     except Exception as exc:
-        result['msg'] = str(exc)
-        module.fail_json(**result)
+        module.fail_json(msg=str(exc))
 
     # Successful module execution
-    result['changed'] = True
-    result['msg'] = (
-        "Yum {0} configuration was successfully updated.".format(m_type)
-    )
+    result = {
+        'changed': True,
+        'msg': "Yum {0} configuration was successfully updated.".format(
+            module.params['type'])
+    }
     module.exit_json(**result)
 
 

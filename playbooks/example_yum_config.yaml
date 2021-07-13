@@ -2,7 +2,7 @@
 - name: Example usage for tripleo.repos.yum_config ansible module
   hosts: localhost
   tasks:
-    - name: Enable fake yum repo and set exclude dirs
+    - name: Enable appstream yum repo and set exclude packages
       become: true
       tripleo.repos.yum_config:
         type: repo
