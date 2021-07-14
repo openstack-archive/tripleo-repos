@@ -48,6 +48,11 @@ options:
         required: false
         type: str
         default: current-tripleo
+    dlrn_url:
+        description: The url of the DLRN server to use for hash queries
+        required: false
+        type: str
+        default: https://trunk.rdoproject.org
 
 author:
     - Marios Andreou (@marios)
@@ -59,6 +64,7 @@ EXAMPLES = r'''
     os_version: centos8
     release: victoria
     component: tripleo
+    dlrn_url: 'https://foo.bar.baz'
 '''
 
 RETURN = r'''
@@ -102,6 +108,9 @@ def run_module():
         release=dict(type='str', required=False, default='master'),
         component=dict(type='str', required=False, default=None),
         tag=dict(type='str', required=False, default='current-tripleo'),
+        dlrn_url=dict(type='str',
+                      required=False,
+                      default='https://trunk.rdoproject.org'),
     )
 
     module = AnsibleModule(
@@ -115,8 +124,10 @@ def run_module():
         release = module.params.get('release')
         component = module.params.get('component')
         tag = module.params.get('tag')
+        dlrn_url = module.params.get('dlrn_url')
 
-        hash_result = TripleOHashInfo(os_version, release, component, tag)
+        hash_result = TripleOHashInfo(os_version, release, component, tag,
+                                      config={'dlrn_url': dlrn_url})
         result['commit_hash'] = hash_result.commit_hash
         result['distro_hash'] = hash_result.distro_hash
         result['full_hash'] = hash_result.full_hash

@@ -204,3 +204,29 @@ class TestGetHashInfo(unittest.TestCase):
                     None,
                     'tripleo-ci-testing',
                 )
+
+    def test_override_config_dlrn_url(self, mock_config):
+        expected_dlrn_url = 'https://foo.bar.baz/centos8-master/component/common/current-tripleo/commit.yaml'  # noqa
+        with requests_mock.Mocker() as req_mock:
+            req_mock.get(
+                expected_dlrn_url,
+                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
+            )
+            mock_hash_info = thi.TripleOHashInfo(
+                'centos8', 'master', 'common', 'current-tripleo',
+                {'dlrn_url': 'https://foo.bar.baz'}
+            )
+            self.assertEqual(expected_dlrn_url, mock_hash_info.dlrn_url)
+
+    def test_override_config_dlrn_url_empty_ignored(self, mock_config):
+        expected_dlrn_url = 'https://trunk.rdoproject.org/centos8-master/component/common/current-tripleo/commit.yaml'  # noqa
+        with requests_mock.Mocker() as req_mock:
+            req_mock.get(
+                expected_dlrn_url,
+                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
+            )
+            mock_hash_info = thi.TripleOHashInfo(
+                'centos8', 'master', 'common', 'current-tripleo',
+                {'dlrn_url': ''}
+            )
+            self.assertEqual(expected_dlrn_url, mock_hash_info.dlrn_url)

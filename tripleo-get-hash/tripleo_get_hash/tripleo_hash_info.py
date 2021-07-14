@@ -66,7 +66,7 @@ class TripleOHashInfo:
         logger.setLevel(logging.INFO)
 
     @classmethod
-    def load_config(cls):
+    def load_config(cls, passed_config=None):
         """
         This is a class method since we call it from the CLI entrypoint
         before the TripleOHashInfo object is created. The method will first
@@ -74,12 +74,15 @@ class TripleOHashInfo:
         a local config.yaml for example for invocations from a source checkout
         directory. If the file is not found TripleOHashMissingConfig is raised.
         If any of the contants.CONFIG_KEYS is missing from config.yaml then
-        TripleOHashInvalidConfig is raised. Returns a dictionary containing
+        TripleOHashInvalidConfig is raised. If the passed_config dict contains
+        a given config value then that is used instead of the value from the
+        loaded config file. Returns a dictionary containing
         the key->value for all the keys in constants.CONFIG_KEYS.
 
+        :param passed_config: dict with configuration overrides
         :raises TripleOHashMissingConfig for missing config.yaml
         :raises TripleOHashInvalidConfig for missing keys in config.yaml
-        :returns a config dictionary with the keys in constants.CONFIG_KEYS
+        :return: a config dictionary with the keys in constants.CONFIG_KEYS
         """
 
         def _check_read_file(filepath):
@@ -101,6 +104,7 @@ class TripleOHashInfo:
                 if _check_read_file(_local_config):
                     return _local_config
 
+        passed_config = passed_config or {}
         result_config = {}
         config_path = ''
         local_config = _resolve_local_config_path()
@@ -117,9 +121,9 @@ class TripleOHashInfo:
             )
         logging.info("Using config file at {}".format(config_path))
         with open(config_path, 'r') as config_yaml:
-            conf_yaml = yaml.safe_load(config_yaml)
+            loaded_config = yaml.safe_load(config_yaml)
         for k in const.CONFIG_KEYS:
-            if k not in conf_yaml:
+            if k not in loaded_config:
                 error_str = (
                     "Malformed config file - missing {}. Expected all"
                     "of these configuration items: {}"
@@ -128,8 +132,11 @@ class TripleOHashInfo:
                 )
                 logging.error(error_str)
                 raise exc.TripleOHashInvalidConfig(error_str)
-            loaded_value = conf_yaml[k]
-            result_config[k] = loaded_value
+            # if the passed config contains the key then use that value
+            if passed_config.get(k):
+                result_config[k] = passed_config[k]
+            else:
+                result_config[k] = loaded_config[k]
         return result_config
 
     def __init__(self, os_version, release, component, tag, config=None):
@@ -142,8 +149,7 @@ class TripleOHashInfo:
         :param config: Use an existing config dictionary and don't load it
         """
 
-        if config is None:
-            config = TripleOHashInfo.load_config()
+        config = TripleOHashInfo.load_config(config)
 
         self.os_version = os_version
         self.release = release
