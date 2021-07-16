@@ -17,11 +17,11 @@ import sys
 import unittest
 from unittest import mock
 
-import test.fakes as fakes
-import test.mock_modules  # noqa: F401
-import tripleo_yum_config.__main__ as main
-import tripleo_yum_config.yum_config as yum_cfg
-import tripleo_yum_config.dnf_manager as dnf_mgr
+from . import fakes
+from . import mock_modules  # noqa: F401
+import tripleo_repos.yum_config.__main__ as main
+import tripleo_repos.yum_config.yum_config as yum_cfg
+import tripleo_repos.yum_config.dnf_manager as dnf_mgr
 
 
 class TestTripleoYumConfigBase(unittest.TestCase):

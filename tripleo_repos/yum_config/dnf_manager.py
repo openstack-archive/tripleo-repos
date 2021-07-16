@@ -13,13 +13,14 @@
 #  under the License.
 
 import logging
-import dnf
 
 
 class DnfModuleManager:
     """Class that manages dnf modules."""
 
     def __init__(self):
+        # lazy import to allow CLI to start without dnf
+        import dnf
         self.base = dnf.Base()
         self.base.conf.read()
         self.base.conf.best = True

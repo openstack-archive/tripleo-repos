@@ -18,8 +18,8 @@ import logging
 import os
 import sys
 
-import tripleo_yum_config.constants as const
-import tripleo_yum_config.exceptions as exc
+import tripleo_repos.yum_config.constants as const
+import tripleo_repos.yum_config.exceptions as exc
 
 
 class TripleOYumConfig:

@@ -15,9 +15,9 @@
 #
 
 import unittest
-import tripleo_get_hash.tripleo_hash_info as thi
-import tripleo_get_hash.exceptions as exc
-import test.fakes as test_fakes
+import tripleo_repos.get_hash.tripleo_hash_info as thi
+import tripleo_repos.get_hash.exceptions as exc
+from . import fakes as test_fakes
 import requests_mock
 from unittest import mock
 from unittest.mock import mock_open

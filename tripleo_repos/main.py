@@ -17,6 +17,7 @@
 from __future__ import print_function
 import argparse
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -115,6 +116,11 @@ def _get_distro():
 
     returns: distro_id, distro_major_version_id, distro_name
     """
+    # Avoids a crash on unsupported platforms which would prevent even
+    # running with `--help`.
+    if not os.path.exists('/etc/os-release'):
+        return platform.system(), 'unknown', 'unknown'
+
     output = subprocess.Popen(
         'source /etc/os-release && echo -e -n "$ID\n$VERSION_ID\n$NAME"',
         shell=True,
@@ -155,7 +161,7 @@ def _parse_args(distro_id, distro_major_version_id):
     distro = "{}{}".format(distro_id, distro_major_version_id)
 
     # Calculating arguments default from constants
-    default_mirror = DEFAULT_MIRROR_MAP[distro_id]
+    default_mirror = DEFAULT_MIRROR_MAP.get(distro_id, None)
     distro_choices = ["".join(distro_pair)
                       for distro_pair in SUPPORTED_DISTROS]
 

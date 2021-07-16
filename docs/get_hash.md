@@ -10,12 +10,12 @@ information, including the commit, distro and full hashes where available.
 It includes a simple command line interface. If you clone the source you can
 try it out of the box without installation invoking it as a module:
 ```
-     python -m tripleo_get_hash # by default centos8, master, current-tripleo.
-     python -m tripleo_get_hash --component tripleo --release victoria --os-version centos8
-     python -m tripleo_get_hash --release master --os-version centos7
-     python -m tripleo_get_hash --release train # by default centos8
-     python -m tripleo_get_hash --os-version rhel8 --release osp16-2 --dlrn-url http://osp-trunk.hosted.upshift.rdu2.redhat.com
-     python -m tripleo_get_hash --help
+     tripleo-get-hash # by default centos8, master, current-tripleo.
+     tripleo-get-hash --component tripleo --release victoria --os-version centos8
+     tripleo-get-hash --release master --os-version centos7
+     tripleo-get-hash --release train # by default centos8
+     tripleo-get-hash --os-version rhel8 --release osp16-2 --dlrn-url http://osp-trunk.hosted.upshift.rdu2.redhat.com
+     tripleo-get-hash --help
 ```
 
 ## Quick start
@@ -38,10 +38,10 @@ is placed in /usr/local/etc:
 #### Install using pip
 
 You can also install using python pip - you can see the
-[tripleo-get-hash module here](https://pypi.org/project/tripleo-get-hash/)
+[tripleo-get-hash module here](https://pypi.org/project/tripleo-repos/)
 
 ```
-    pip install tripleo-get-hash --user
+    pip install tripleo-repos --user
 ```
 
 After installation you can invoke tripleo-get-hash --help to see the various

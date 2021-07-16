@@ -5,6 +5,9 @@
       - openstack-python3-wallaby-jobs
     check:
       jobs: &cjobs
+        - openstack-tox-pep8:
+            vars:
+              tox_envlist: pep8,packaging
         - openstack-tox-py39
         - tripleo-buildimage-overcloud-full-centos-8:
             dependencies: &deps_unit_lint_cprovider

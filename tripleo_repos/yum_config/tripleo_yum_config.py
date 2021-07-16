@@ -15,8 +15,8 @@
 
 from ansible.module_utils.basic import AnsibleModule
 
-import tripleo_yum_config.dnf_manager as dnf_mgr
-import tripleo_yum_config.yum_config as cfg
+import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+import tripleo_repos.yum_config.yum_config as cfg
 
 DOCUMENTATION = r'''
 ---

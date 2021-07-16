@@ -14,8 +14,8 @@
 import ddt
 from unittest import mock
 
-import test.test_main as test_main
-import tripleo_yum_config.dnf_manager as dnf_mgr
+from . import test_main
+import tripleo_repos.yum_config.dnf_manager as dnf_mgr
 
 
 @ddt.ddt

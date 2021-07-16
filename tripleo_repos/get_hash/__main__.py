@@ -17,8 +17,8 @@
 import argparse
 import logging
 import sys
-from tripleo_get_hash.tripleo_hash_info import TripleOHashInfo
-import tripleo_get_hash.exceptions as exc
+from tripleo_repos.get_hash.tripleo_hash_info import TripleOHashInfo
+import tripleo_repos.get_hash.exceptions as exc
 
 
 def _validate_args(parsed_args):

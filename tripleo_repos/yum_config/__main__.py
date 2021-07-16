@@ -17,8 +17,8 @@ import argparse
 import logging
 import sys
 
-import tripleo_yum_config.yum_config as cfg
-import tripleo_yum_config.dnf_manager as dnf_mgr
+import tripleo_repos.yum_config.yum_config as cfg
+import tripleo_repos.yum_config.dnf_manager as dnf_mgr
 
 
 def options_to_dict(options):

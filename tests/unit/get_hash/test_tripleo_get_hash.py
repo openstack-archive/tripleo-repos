@@ -21,9 +21,9 @@ from unittest import mock
 from unittest.mock import mock_open
 import yaml
 
-import tripleo_get_hash.exceptions as exc
-import tripleo_get_hash.__main__ as tgh
-import test.fakes as test_fakes
+import tripleo_repos.get_hash.exceptions as exc
+import tripleo_repos.get_hash.__main__ as tgh
+from . import fakes as test_fakes
 
 
 @mock.patch(

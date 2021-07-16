@@ -18,11 +18,11 @@ import ddt
 import os
 from unittest import mock
 
-import test.fakes as fakes
-import test.test_main as test_main
-import tripleo_yum_config.constants as const
-import tripleo_yum_config.exceptions as exc
-import tripleo_yum_config.yum_config as yum_cfg
+from . import fakes
+from . import test_main
+import tripleo_repos.yum_config.constants as const
+import tripleo_repos.yum_config.exceptions as exc
+import tripleo_repos.yum_config.yum_config as yum_cfg
 
 
 @ddt.ddt

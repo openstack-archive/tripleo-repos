@@ -1,4 +1,4 @@
-# tripleo-yum-config
+# tripleo_repos.yum_config
 
 *tripleo-yum-config* utility was designed to simplify the way that TripleO
 deployments manage their yum configuration. This tool helps on updating
@@ -32,10 +32,10 @@ its repository and invoking in command line:
 
   Examples:
   ```
-  sudo python -m tripleo_yum_config module remove tomcat
-  sudo python -m tripleo_yum_config module disable tomcat
-  sudo python -m tripleo_yum_config module enable nginx --stream mainline
-  sudo python -m tripleo_yum_config module install nginx --profile common
+  sudo tripleo-yum-config module remove tomcat
+  sudo tripleo-yum-config module disable tomcat
+  sudo tripleo-yum-config module enable nginx --stream mainline
+  sudo tripleo-yum-config module install nginx --profile common
   ```
 * **global**
 
@@ -60,9 +60,9 @@ sudo python setup.py install
 #### Install using pip
 Alternatively you can install tripleo-yum-config with python pip:
 ```
-pip install tripleo-yum-config --user
+pip install tripleo-repos --user
 ```
-See PyPI [tripleo-yum-config](https://pypi.org/project/tripleo-yum-config/)
+See PyPI [tripleo-repos](https://pypi.org/project/tripleo-repos/)
 project for more details.
 
 ## Usage

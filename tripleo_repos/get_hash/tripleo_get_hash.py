@@ -14,7 +14,7 @@
 #   under the License.
 #
 
-from tripleo_get_hash.tripleo_hash_info import TripleOHashInfo
+from tripleo_repos.get_hash.tripleo_hash_info import TripleOHashInfo
 from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = r'''
