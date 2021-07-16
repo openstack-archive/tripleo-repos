@@ -1,10 +1,10 @@
 ---
-- name: Example usage for tripleo_yum_config python module
+- name: Example usage for tripleo.repos.yum_config ansible module
   hosts: localhost
   tasks:
     - name: Enable fake yum repo and set exclude dirs
       become: true
-      tripleo_yum_config:
+      tripleo.repos.yum_config:
         type: repo
         name: appstream
         enabled: true
@@ -15,7 +15,7 @@
 
     - name: Enable and install nginx module
       become: true
-      tripleo_yum_config:
+      tripleo.repos.yum_config:
         type: module
         name: nginx
         enabled: true
@@ -25,7 +25,7 @@
 
     - name: Set yum global options in dnf.conf
       become: true
-      tripleo_yum_config:
+      tripleo.repos.yum_config:
         type: global
         file_path: /etc/dnf/dnf.conf
         set_options:

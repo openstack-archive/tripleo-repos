@@ -19,3 +19,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+
+# built ansible collection
+*.tar.gz
+

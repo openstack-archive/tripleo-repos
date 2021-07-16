@@ -3,7 +3,7 @@
   hosts: localhost
   tasks:
     - name: get component-ci-testing for victoria compute component
-      tripleo_get_hash:
+      tripleo.repos.get_hash:
         os_version: centos8       # default: centos8
         release: victoria         # default: master
         component: compute        # default: None
@@ -17,7 +17,7 @@
         var: component_ci_testing_victoria_compute
 
     - name: get centos7 tripleo-ci-testing for train
-      tripleo_get_hash:
+      tripleo.repos.get_hash:
         os_version: centos7
         release: train
         tag: tripleo-ci-testing
@@ -30,7 +30,7 @@
         var: centos7_tripleo_ci_testing_train
 
     - name: get current-tripleo centos8 for master branch
-      tripleo_get_hash:
+      tripleo.repos.get_hash:
       register: centos8_current_tripleo_master
 
     - debug:

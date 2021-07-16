@@ -1,4 +1,4 @@
-# tripleo_repos.yum_config
+# tripleo.repos.yum_config
 
 *tripleo-yum-config* utility was designed to simplify the way that TripleO
 deployments manage their yum configuration. This tool helps on updating
@@ -75,11 +75,11 @@ tripleo-yum-config --help
 
 ## Ansible Module
 
-An ansible module [tripleo_yum_config](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-yum-config/tripleo_yum_config.py)
-is available for you when you install tripleo-yum-config, either by using
-setup.py or pip. The module is installed at the relative path
-*share/ansible/plugins/modules*, which may land on a different directory,
-depending on how you are installing this package. Check your ansible
-configuration to see if the directory is included in your ansible library path.
-An [example playbook](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-yum-config/example_playbook.yaml)
-is available to assist on module usage.
+It is required that you install `tripleo.repos` collection to use the ansible
+module.
+
+An ansible module [tripleo.repos.yum_config](https://opendev.org/openstack/tripleo-repos/src/branch/master/modules/module/modules/yum_config.py)
+is available for you when you install `tripleo.repos` collection.
+
+An [example playbook](https://opendev.org/openstack/tripleo-repos/src/branch/master/playbooks/example_yum_config.yaml)
+is available to assist with module usage.

@@ -1,6 +1,6 @@
-# tripleo-get-hash
+# tripleo.repos.get_hash
 
-## What is tripleo-get-hash
+## What is tripleo.repos.get_hash
 
 This utility is meant for use by TripleO deployments, particularly in zuul
 continuous integration jobs. Given an [RDO named tag](https://docs.openstack.org/tripleo-docs/latest/ci/stages-overview.html#rdo-dlrn-promotion-criteria),
@@ -59,20 +59,15 @@ all of constants.CONFIG_KEYS to avoid explosions.
 
 ## Ansible Module
 
-The tripleo-get-hash utility can be invoked from ansible using the
-[tripleo_get_hash.py](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-get-hash/tripleo_get_hash.py) ansible module from the source tree.
-If you install tripleo-get-hash using python setup.py, the module will be
-installed for you at /usr/share/ansible/plugins/modules/ and is ready to use.
-Otherwise you will need to copy this file to somewhere that your ansible
-installation can find it. It is required that you install tripleo-get-hash either
-via pip or via setup.py before you can use the ansible module.
+It is required that you install `tripleo.repos` collection to use the ansible
+module.
 
-See the [example playbook](https://opendev.org/openstack/tripleo-repos/src/branch/master/tripleo-get-hash/example_playbook.yaml) included here for examples of
+See the [example playbook](https://opendev.org/openstack/tripleo-repos/src/branch/master/playbooks/example_get_hash.yaml) included here for examples of
 usage. You can also test the ansible module is available and working correctly
-from the bash shell:
+from using shell:
 
 ```
-$ ansible localhost -m tripleo_get_hash -a "component=compute release=victoria"
+$ ansible localhost -m tripleo.repos.get_hash -a "component=compute release=victoria"
 localhost | SUCCESS => {
     "changed": false,
     "commit_hash": "e954a56fec69637ebd671643d41bb0ecc85a2656",
