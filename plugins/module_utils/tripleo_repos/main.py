@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function)
 import argparse
 import os
 import platform
@@ -22,9 +22,8 @@ import re
 import subprocess
 import sys
 
-import requests
 
-
+__metaclass__ = type
 TITLE_RE = re.compile('\\[(.*)\\]')
 NAME_RE = re.compile('name=(.+)')
 PRIORITY_RE = re.compile('priority=\\d+')
@@ -222,6 +221,11 @@ def _parse_args(distro_id, distro_major_version_id):
 
 
 def _get_repo(path, args):
+
+    # lazy import
+    if 'requests' not in globals():
+        import requests
+
     r = requests.get(path)
     if r.status_code == 200:
         return _inject_mirrors(r.text, args)

@@ -1,31 +1,22 @@
 #!/usr/bin/python
-#   Copyright 2021 Red Hat, Inc.
-#
-#   Licensed under the Apache License, Version 2.0 (the "License"); you may
-#   not use this file except in compliance with the License. You may obtain
-#   a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#   License for the specific language governing permissions and limitations
-#   under the License.
-#
+# Copyright 2021 Red Hat, Inc.
+# GNU General Public License v3.0+ (see COPYING or
+# https://www.gnu.org/licenses/gpl-3.0.txt)
+from __future__ import (absolute_import, division, print_function)
 
-from tripleo_repos.get_hash.tripleo_hash_info import TripleOHashInfo
-from ansible.module_utils.basic import AnsibleModule
+
+__metaclass__ = type
+
 
 DOCUMENTATION = r'''
 ---
-module: tripleo_get_hash
+module: get_hash
 
 short_description: Resolve rdo named tag to commit, full and distro hashes
 
-version_added: "2.9"
+version_added: "1.0.0"
 
-description:
+description: ""
 
 options:
     os_version:
@@ -42,7 +33,6 @@ options:
         description: The tripleo-ci component you are interested in
         required: false
         type: str
-        default: None
     tag:
         description: The named tag to fetch
         required: false
@@ -95,6 +85,8 @@ dlrn_url:
     sample: 'https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo.md5'  # noqa E501
 '''
 
+from ansible.module_utils.basic import AnsibleModule  # noqa: E402
+
 
 def run_module():
     result = dict(
@@ -119,6 +111,13 @@ def run_module():
     )
 
     try:
+
+        try:
+            from ansible_collections.tripleo.repos.plugins.module_utils.\
+                tripleo_repo.get_hash.tripleo_hash_info import TripleOHashInfo
+        except ImportError:
+            from tripleo_repos.get_hash.tripleo_hash_info import \
+                TripleOHashInfo
 
         os_version = module.params.get('os_version')
         release = module.params.get('release')

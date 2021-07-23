@@ -1,0 +1,13 @@
+plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py import
+plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py pylint:ansible-bad-function
+plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py pylint:ansible-format-automatic-specification
+plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py pylint:logging-format-interpolation
+plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py replace-urlopen  # we did it right
+plugins/module_utils/tripleo_repos/main.py import:traceback
+plugins/module_utils/tripleo_repos/main.py pylint:ansible-bad-function
+plugins/module_utils/tripleo_repos/main.py pylint:ansible-format-automatic-specification
+plugins/module_utils/tripleo_repos/yum_config/dnf_manager.py pylint:ansible-format-automatic-specification
+plugins/module_utils/tripleo_repos/yum_config/dnf_manager.py pylint:logging-format-interpolation
+plugins/module_utils/tripleo_repos/yum_config/yum_config.py pylint:ansible-format-automatic-specification
+plugins/module_utils/tripleo_repos/yum_config/yum_config.py pylint:logging-format-interpolation
+plugins/modules/yum_config.py pylint:ansible-format-automatic-specification

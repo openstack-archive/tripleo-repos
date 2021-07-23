@@ -13,14 +13,18 @@
 #  under the License.
 #
 #
+from __future__ import (absolute_import, division, print_function)
 
 import logging
 import sys
-import yaml
 import os
+import yaml
 import requests
-import tripleo_repos.get_hash.constants as const
-import tripleo_repos.get_hash.exceptions as exc
+from .constants import CONFIG_PATH, CONFIG_KEYS
+from .exceptions import TripleOHashMissingConfig, TripleOHashInvalidConfig
+
+
+__metaclass__ = type
 
 
 class TripleOHashInfo:
@@ -111,29 +115,29 @@ class TripleOHashInfo:
         config_path = ''
         local_config = _resolve_local_config_path()
         # prefer const.CONFIG_PATH then local_config
-        if _check_read_file(const.CONFIG_PATH):
-            config_path = const.CONFIG_PATH
+        if _check_read_file(CONFIG_PATH):
+            config_path = CONFIG_PATH
         elif local_config:
             config_path = local_config
         else:
-            raise exc.TripleOHashMissingConfig(
+            raise TripleOHashMissingConfig(
                 "Configuration file not found at {} or {}".format(
-                    const.CONFIG_PATH, local_config
+                    CONFIG_PATH, local_config
                 )
             )
         logging.info("Using config file at {}".format(config_path))
         with open(config_path, 'r') as config_yaml:
             loaded_config = yaml.safe_load(config_yaml)
-        for k in const.CONFIG_KEYS:
+        for k in CONFIG_KEYS:
             if k not in loaded_config:
                 error_str = (
                     "Malformed config file - missing {}. Expected all"
                     "of these configuration items: {}"
                 ).format(
-                    k, ", ".join(const.CONFIG_KEYS)
+                    k, ", ".join(CONFIG_KEYS)
                 )
                 logging.error(error_str)
-                raise exc.TripleOHashInvalidConfig(error_str)
+                raise TripleOHashInvalidConfig(error_str)
             # if the passed config contains the key then use that value
             if passed_config.get(k):
                 result_config[k] = passed_config[k]
@@ -150,7 +154,6 @@ class TripleOHashInfo:
         :param tag: The Delorean server named tag e.g. current-tripleo
         :param config: Use an existing config dictionary and don't load it
         """
-
         config = TripleOHashInfo.load_config(config)
 
         self.os_version = os_version

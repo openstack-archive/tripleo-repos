@@ -13,10 +13,12 @@
 #   under the License.
 #
 #
-
+from __future__ import (absolute_import, division, print_function)
 """
 List of options that can be updated for yum repo files.
 """
+
+__metaclass__ = type
 YUM_REPO_SUPPORTED_OPTIONS = [
     'name',
     'baseurl',

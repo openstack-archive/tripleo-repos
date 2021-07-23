@@ -12,14 +12,30 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 #
+from __future__ import (absolute_import, division, print_function)
+
 
 import configparser
 import logging
 import os
 import sys
 
-import tripleo_repos.yum_config.constants as const
-import tripleo_repos.yum_config.exceptions as exc
+from .constants import (
+    YUM_GLOBAL_CONFIG_FILE_PATH,
+    YUM_REPO_DIR,
+    YUM_REPO_FILE_EXTENSION,
+    YUM_REPO_SUPPORTED_OPTIONS,
+)
+from .exceptions import (
+    TripleOYumConfigFileParseError,
+    TripleOYumConfigInvalidOption,
+    TripleOYumConfigInvalidSection,
+    TripleOYumConfigNotFound,
+    TripleOYumConfigPermissionDenied,
+)
+
+
+__metaclass__ = type
 
 
 class TripleOYumConfig:
@@ -81,23 +97,23 @@ class TripleOYumConfig:
         if not (file_path or dir_path):
             msg = ('A configuration file path or a directory path must be '
                    'provided.')
-            raise exc.TripleOYumConfigNotFound(error_msg=msg)
+            raise TripleOYumConfigNotFound(error_msg=msg)
 
         if file_path:
             if not os.path.isfile(file_path):
                 msg = ('The configuration file "{}" was not found in the '
                        'provided path.').format(file_path)
-                raise exc.TripleOYumConfigNotFound(error_msg=msg)
+                raise TripleOYumConfigNotFound(error_msg=msg)
             if not os.access(file_path, os.W_OK):
                 msg = ('The configuration file {} is not '
                        'writable.'.format(file_path))
-                raise exc.TripleOYumConfigPermissionDenied(error_msg=msg)
+                raise TripleOYumConfigPermissionDenied(error_msg=msg)
 
         if dir_path:
             if not os.path.isdir(dir_path):
                 msg = ('The configuration dir "{}" was not found in the '
                        'provided path.').format(dir_path)
-                raise exc.TripleOYumConfigNotFound(error_msg=msg)
+                raise TripleOYumConfigNotFound(error_msg=msg)
 
     def _read_config_file(self, section):
         """Read the configuration file associate with this object.
@@ -118,13 +134,13 @@ class TripleOYumConfig:
             except configparser.Error:
                 msg = 'Unable to parse configuration file {}.'.format(
                     self.config_file_path)
-                raise exc.TripleOYumConfigFileParseError(error_msg=msg)
+                raise TripleOYumConfigFileParseError(error_msg=msg)
 
             if section not in config.sections():
                 msg = ('The provided section "{}" was not found in the '
                        'configuration file {}.').format(
                     section, self.config_file_path)
-                raise exc.TripleOYumConfigInvalidSection(error_msg=msg)
+                raise TripleOYumConfigInvalidSection(error_msg=msg)
 
             return config, self.config_file_path
 
@@ -168,13 +184,13 @@ class TripleOYumConfig:
         if self.valid_options:
             if not all(key in self.valid_options for key in set_dict.keys()):
                 msg = 'One or more provided options are not valid.'
-                raise exc.TripleOYumConfigInvalidOption(error_msg=msg)
+                raise TripleOYumConfigInvalidOption(error_msg=msg)
 
         config, config_file_path = self._read_config_file(section)
         if not (config and config_file_path):
             msg = ('The provided section "{}" was not found within any '
                    'configuration file.').format(section)
-            raise exc.TripleOYumConfigNotFound(error_msg=msg)
+            raise TripleOYumConfigNotFound(error_msg=msg)
 
         # Update configuration file with dict updates
         config[section].update(set_dict)
@@ -192,13 +208,13 @@ class TripleOYumRepoConfig(TripleOYumConfig):
         if file_path:
             logging.info(
                 "Using '{}' as yum repo configuration file.".format(file_path))
-        conf_dir_path = dir_path or const.YUM_REPO_DIR
+        conf_dir_path = dir_path or YUM_REPO_DIR
 
         super(TripleOYumRepoConfig, self).__init__(
-            valid_options=const.YUM_REPO_SUPPORTED_OPTIONS,
+            valid_options=YUM_REPO_SUPPORTED_OPTIONS,
             file_path=file_path,
             dir_path=conf_dir_path,
-            file_extension=const.YUM_REPO_FILE_EXTENSION)
+            file_extension=YUM_REPO_FILE_EXTENSION)
 
     def update_section(self, section, set_dict, enable=None):
         if enable is not None:
@@ -211,7 +227,7 @@ class TripleOYumGlobalConfig(TripleOYumConfig):
     """Manages yum global configuration file."""
 
     def __init__(self, file_path=None):
-        conf_file_path = file_path or const.YUM_GLOBAL_CONFIG_FILE_PATH
+        conf_file_path = file_path or YUM_GLOBAL_CONFIG_FILE_PATH
         logging.info("Using '{}' as yum global configuration "
                      "file.".format(conf_file_path))
         if file_path is None:

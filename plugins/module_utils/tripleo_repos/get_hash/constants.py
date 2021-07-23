@@ -13,6 +13,11 @@
 #   under the License.
 #
 #
+from __future__ import (absolute_import, division, print_function)
+
+
+__metaclass__ = type
+
 
 """
 These are the keys we expect to find in a well-formed config.yaml

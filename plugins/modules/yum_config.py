@@ -1,30 +1,18 @@
 #!/usr/bin/python
-#   Copyright 2021 Red Hat, Inc.
-#
-#   Licensed under the Apache License, Version 2.0 (the "License"); you may
-#   not use this file except in compliance with the License. You may obtain
-#   a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#   License for the specific language governing permissions and limitations
-#   under the License.
+# Copyright 2021 Red Hat, Inc.
+# GNU General Public License v3.0+ (see COPYING or
+# https://www.gnu.org/licenses/gpl-3.0.txt)
+from __future__ import (absolute_import, division, print_function)
 
-from ansible.module_utils.basic import AnsibleModule
 
-import tripleo_repos.yum_config.dnf_manager as dnf_mgr
-import tripleo_repos.yum_config.yum_config as cfg
-
+__metaclass__ = type
 DOCUMENTATION = r'''
 ---
-module: tripleo_yum_config
+module: yum_config
 
 short_description: Update yum configuration files for TripleO deployments.
 
-version_added: "2.9"
+version_added: "1.0.0"
 
 description:
     - Update specific options for different yum configuration files like
@@ -134,6 +122,8 @@ EXAMPLES = r'''
       keepcache: "0"
 '''
 
+from ansible.module_utils.basic import AnsibleModule  # noqa: E402
+
 
 def run_module():
     # define available arguments/parameters a user can pass to the module
@@ -198,6 +188,16 @@ def run_module():
 
     # Module execution
     try:
+
+        try:
+            import ansible_collections.tripleo.repos.plugins.module_utils.\
+                tripleo_repos.yum_config.dnf_manager as dnf_mgr
+            import ansible_collections.tripleo.repos.plugins.module_utils.\
+                tripleo_repos.yum_config.yum_config as cfg
+        except ImportError:
+            import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+            import tripleo_repos.yum_config.yum_config as cfg
+
         if m_type == 'repo':
             config_obj = cfg.TripleOYumRepoConfig(
                 file_path=m_file_path,
