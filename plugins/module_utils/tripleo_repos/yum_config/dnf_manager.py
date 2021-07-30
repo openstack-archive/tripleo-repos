@@ -35,9 +35,9 @@ class DnfModuleManager:
         """Return a module spec string based on stream and/or profile."""
         module_spec = name
         if stream:
-            module_spec += ':{}'.format(stream)
+            module_spec += ':{0}'.format(stream)
         if profile:
-            module_spec += '/{}'.format(profile)
+            module_spec += '/{0}'.format(profile)
         return module_spec
 
     def _do_transaction(self):
@@ -55,7 +55,7 @@ class DnfModuleManager:
             [self._get_module_spec(name, stream=stream, profile=profile)]
         )
         self._do_transaction()
-        logging.info("Module {} was enabled.".format(name))
+        logging.info("Module %s was enabled.", name)
 
     def disable_module(self, name, stream=None, profile=None):
         """Disable a module stream."""
@@ -63,7 +63,7 @@ class DnfModuleManager:
             [self._get_module_spec(name, stream=stream, profile=profile)]
         )
         self._do_transaction()
-        logging.info("Module {} was disabled.".format(name))
+        logging.info("Module %s was disabled.", name)
 
     def reset_module(self, name, stream=None, profile=None):
         """Reset a module. It will no longer be enabled or disabled."""
@@ -71,7 +71,7 @@ class DnfModuleManager:
             [self._get_module_spec(name, stream=stream, profile=profile)]
         )
         self._do_transaction()
-        logging.info("Module {} was reset.".format(name))
+        logging.info("Module %s was reset.", name)
 
     def install_module(self, name, stream=None, profile=None):
         """Install packages of a module profile."""
@@ -81,7 +81,7 @@ class DnfModuleManager:
         self.base.resolve()
         self.base.download_packages(self.base.transaction.install_set)
         self._do_transaction()
-        logging.info("Module {} was installed.".format(name))
+        logging.info("Module %s was installed.", name)
 
     def remove_module(self, name, stream=None, profile=None):
         """Remove packages of a module profile."""
@@ -89,4 +89,4 @@ class DnfModuleManager:
             [self._get_module_spec(name, stream=stream, profile=profile)]
         )
         self._do_transaction()
-        logging.info("Module {} was removed.".format(name))
+        logging.info("Module %s was removed.", name)

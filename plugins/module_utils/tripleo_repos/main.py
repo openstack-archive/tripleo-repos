@@ -141,7 +141,7 @@ def _get_distro():
 
     if (distro_id, distro_major_version_id) not in SUPPORTED_DISTROS:
         print(
-            "WARNING: Unsupported platform '{}{}' detected by tripleo-repos,"
+            "WARNING: Unsupported platform '{0}{1}' detected by tripleo-repos,"
             " centos7 will be used unless you use CLI param to change it."
             "".format(distro_id, distro_major_version_id), file=sys.stderr)
         distro_id = 'centos'
@@ -149,7 +149,7 @@ def _get_distro():
 
     if distro_id == 'ubi':
         print(
-            "WARNING: Centos{} Base and AppStream will be installed for "
+            "WARNING: Centos{0} Base and AppStream will be installed for "
             "this UBI distro".format(distro_major_version_id))
 
     return distro_id, distro_major_version_id, distro_name
@@ -157,7 +157,7 @@ def _get_distro():
 
 def _parse_args(distro_id, distro_major_version_id):
 
-    distro = "{}{}".format(distro_id, distro_major_version_id)
+    distro = "{0}{1}".format(distro_id, distro_major_version_id)
 
     # Calculating arguments default from constants
     default_mirror = DEFAULT_MIRROR_MAP.get(distro_id, None)
@@ -262,9 +262,9 @@ def _validate_distro_repos(args):
                        'opstools', 'current-tripleo-rdo']
     invalid_repos = [x for x in args.repos if x not in valid_repos]
     if len(invalid_repos) > 0:
-        raise InvalidArguments('{} repo(s) are not valid for {}. Valid repos '
-                               'are: {}'.format(invalid_repos, args.distro,
-                                                valid_repos))
+        raise InvalidArguments(
+            '{0} repo(s) are not valid for {1}. Valid repos '
+            'are: {2}'.format(invalid_repos, args.distro, valid_repos))
     return True
 
 

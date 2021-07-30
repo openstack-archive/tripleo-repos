@@ -31,6 +31,8 @@ build_ignore:
   # excluded because galaxy server refuses uploads with __main___ inside
   - plugins/module_utils/tripleo_repos/get_hash/__main__.py
   - plugins/module_utils/tripleo_repos/yum_config/__main__.py
+  # that is not needed for ansible modules and it would upset sanity (pylint)
+  - plugins/module_utils/tripleo_repos/main.py
 
 repository: https://opendev.org/openstack/tripleo-repos
 license_file: LICENSE

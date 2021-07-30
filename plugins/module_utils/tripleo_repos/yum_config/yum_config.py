@@ -101,17 +101,17 @@ class TripleOYumConfig:
 
         if file_path:
             if not os.path.isfile(file_path):
-                msg = ('The configuration file "{}" was not found in the '
+                msg = ('The configuration file "{0}" was not found in the '
                        'provided path.').format(file_path)
                 raise TripleOYumConfigNotFound(error_msg=msg)
             if not os.access(file_path, os.W_OK):
-                msg = ('The configuration file {} is not '
+                msg = ('The configuration file {0} is not '
                        'writable.'.format(file_path))
                 raise TripleOYumConfigPermissionDenied(error_msg=msg)
 
         if dir_path:
             if not os.path.isdir(dir_path):
-                msg = ('The configuration dir "{}" was not found in the '
+                msg = ('The configuration dir "{0}" was not found in the '
                        'provided path.').format(dir_path)
                 raise TripleOYumConfigNotFound(error_msg=msg)
 
@@ -132,13 +132,13 @@ class TripleOYumConfig:
             try:
                 config.read(self.config_file_path)
             except configparser.Error:
-                msg = 'Unable to parse configuration file {}.'.format(
+                msg = 'Unable to parse configuration file {0}.'.format(
                     self.config_file_path)
                 raise TripleOYumConfigFileParseError(error_msg=msg)
 
             if section not in config.sections():
-                msg = ('The provided section "{}" was not found in the '
-                       'configuration file {}.').format(
+                msg = ('The provided section "{0}" was not found in the '
+                       'configuration file {1}.').format(
                     section, self.config_file_path)
                 raise TripleOYumConfigInvalidSection(error_msg=msg)
 
@@ -163,8 +163,8 @@ class TripleOYumConfig:
                 continue
             if section in tmp_config.sections():
                 if section_found:
-                    logging.warning('Section "{}" is listed more than once in '
-                                    'configuration files.'.format(section))
+                    logging.warning('Section "%s" is listed more than once in '
+                                    'configuration files.', section)
                 else:
                     # Read the first occurrence of 'section'
                     config_file_path = os.path.join(self.dir_path, file)
@@ -188,7 +188,7 @@ class TripleOYumConfig:
 
         config, config_file_path = self._read_config_file(section)
         if not (config and config_file_path):
-            msg = ('The provided section "{}" was not found within any '
+            msg = ('The provided section "{0}" was not found within any '
                    'configuration file.').format(section)
             raise TripleOYumConfigNotFound(error_msg=msg)
 
@@ -198,7 +198,7 @@ class TripleOYumConfig:
         with open(config_file_path, 'w') as file:
             config.write(file)
 
-        logging.info("Section '{}' was successfully updated.".format(section))
+        logging.info("Section '%s' was successfully updated.", section)
 
 
 class TripleOYumRepoConfig(TripleOYumConfig):
@@ -207,7 +207,7 @@ class TripleOYumRepoConfig(TripleOYumConfig):
     def __init__(self, file_path=None, dir_path=None):
         if file_path:
             logging.info(
-                "Using '{}' as yum repo configuration file.".format(file_path))
+                "Using '%s' as yum repo configuration file.", file_path)
         conf_dir_path = dir_path or YUM_REPO_DIR
 
         super(TripleOYumRepoConfig, self).__init__(
@@ -228,8 +228,8 @@ class TripleOYumGlobalConfig(TripleOYumConfig):
 
     def __init__(self, file_path=None):
         conf_file_path = file_path or YUM_GLOBAL_CONFIG_FILE_PATH
-        logging.info("Using '{}' as yum global configuration "
-                     "file.".format(conf_file_path))
+        logging.info("Using '%s' as yum global configuration "
+                     "file.", conf_file_path)
         if file_path is None:
             # If there is no default 'yum.conf' configuration file, we need to
             # create it. If the user specify another conf file that doesn't

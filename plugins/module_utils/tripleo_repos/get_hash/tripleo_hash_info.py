@@ -121,18 +121,18 @@ class TripleOHashInfo:
             config_path = local_config
         else:
             raise TripleOHashMissingConfig(
-                "Configuration file not found at {} or {}".format(
+                "Configuration file not found at {0} or {1}".format(
                     CONFIG_PATH, local_config
                 )
             )
-        logging.info("Using config file at {}".format(config_path))
+        logging.info("Using config file at %s", config_path)
         with open(config_path, 'r') as config_yaml:
             loaded_config = yaml.safe_load(config_yaml)
         for k in CONFIG_KEYS:
             if k not in loaded_config:
                 error_str = (
-                    "Malformed config file - missing {}. Expected all"
-                    "of these configuration items: {}"
+                    "Malformed config file - missing {0}. Expected all"
+                    "of these configuration items: {1}"
                 ).format(
                     k, ", ".join(CONFIG_KEYS)
                 )
@@ -213,7 +213,7 @@ class TripleOHashInfo:
                 self.release,
                 self.tag,
             )
-        logging.debug("repo_url is {}".format(repo_url))
+        logging.debug("repo_url is %s", repo_url)
         return repo_url
 
     def _hashes_from_commit_yaml(self, delorean_result):
@@ -229,10 +229,10 @@ class TripleOHashInfo:
         full = "%s_%s" % (commit, distro[0:8])
         extended = parsed_yaml['commits'][0]['extended_hash']
         logging.debug(
-            "delorean commit.yaml results {}".format(parsed_yaml['commits'][0])
-        )
+            "delorean commit.yaml results %s", parsed_yaml['commits'][0])
         return full, commit, distro, extended
 
-    def pretty_print(self):
+    def __repr__(self) -> str:
+        """Returns a string representation of the object"""
         attrs = vars(self)
-        print(',\n'.join('%s: %s' % item for item in attrs.items()))
+        return ',\n'.join('%s: %s' % item for item in attrs.items())

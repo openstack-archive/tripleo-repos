@@ -232,7 +232,7 @@ def run_module():
     # Successful module execution
     result['changed'] = True
     result['msg'] = (
-        "Yum {} configuration was successfully updated.".format(m_type)
+        "Yum {0} configuration was successfully updated.".format(m_type)
     )
     module.exit_json(**result)
 

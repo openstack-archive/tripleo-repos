@@ -96,7 +96,7 @@ def main():
         args.tag,
         config,
     )
-    tripleo_hash_info.pretty_print()
+    print(tripleo_hash_info)
     return tripleo_hash_info
 
 
