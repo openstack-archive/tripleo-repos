@@ -29,51 +29,25 @@ import tripleo_repos.yum_config.yum_config as yum_cfg
 class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
     """Tests for TripleYumConfig class and its methods."""
 
-    def _create_yum_config_obj(self, file_path=None, dir_path=None,
-                               valid_options=None, file_extension=None):
+    def _create_yum_config_obj(self, dir_path=None, valid_options=None,
+                               file_extension=None):
         self.mock_object(os.path, 'isfile')
         self.mock_object(os, 'access')
         self.mock_object(os.path, 'isdir')
-        return yum_cfg.TripleOYumConfig(file_path=file_path, dir_path=dir_path,
+        return yum_cfg.TripleOYumConfig(dir_path=dir_path,
                                         valid_options=valid_options,
                                         file_extension=file_extension)
 
-    @ddt.data(
-        {'file_path': None, 'dir_path': None, 'is_file_ret': None,
-         'access_ret': None, 'is_dir_ret': None,
-         'exception': exc.TripleOYumConfigNotFound},
-
-        {'file_path': 'fake_path', 'dir_path': None, 'is_file_ret': False,
-         'access_ret': None, 'is_dir_ret': None,
-         'exception': exc.TripleOYumConfigNotFound},
-
-        {'file_path': 'fake_path', 'dir_path': None, 'is_file_ret': True,
-         'access_ret': False, 'is_dir_ret': None,
-         'exception': exc.TripleOYumConfigPermissionDenied},
-
-        {'file_path': None, 'dir_path': 'fake_dir', 'is_file_ret': None,
-         'access_ret': None, 'is_dir_ret': False,
-         'exception': exc.TripleOYumConfigNotFound},
-    )
-    @ddt.unpack
-    def test_tripleo_yum_config_invalid_parameters(
-            self, file_path, dir_path, is_file_ret, access_ret, is_dir_ret,
-            exception):
-        self.mock_object(os.path, 'isfile',
-                         mock.Mock(return_value=is_file_ret))
-        self.mock_object(os, 'access',
-                         mock.Mock(return_value=access_ret))
+    def test_tripleo_yum_config_invalid_dir_path(self):
         self.mock_object(os.path, 'isdir',
-                         mock.Mock(return_value=is_dir_ret))
+                         mock.Mock(return_value=False))
 
-        self.assertRaises(exception,
+        self.assertRaises(exc.TripleOYumConfigNotFound,
                           yum_cfg.TripleOYumConfig,
-                          file_path=file_path,
-                          dir_path=dir_path)
+                          dir_path='fake_dir_path')
 
     def test_read_config_file_path(self):
-        yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH)
+        yum_config = self._create_yum_config_obj()
 
         parser_mock = mock.Mock()
         self.mock_object(configparser, 'ConfigParser',
@@ -83,7 +57,8 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
                          mock.Mock(return_value=fakes.FAKE_SECTIONS))
 
         config_parser, file_path = yum_config._read_config_file(
-            fakes.FAKE_SECTION1
+            fakes.FAKE_FILE_PATH,
+            section=fakes.FAKE_SECTION1
         )
 
         self.assertEqual(parser_mock, config_parser)
@@ -91,8 +66,7 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
         read_mock.assert_called_once_with(fakes.FAKE_FILE_PATH)
 
     def test_read_config_file_path_parse_error(self):
-        yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH)
+        yum_config = self._create_yum_config_obj()
 
         parser_mock = mock.Mock()
         self.mock_object(configparser, 'ConfigParser',
@@ -102,13 +76,13 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
 
         self.assertRaises(exc.TripleOYumConfigFileParseError,
                           yum_config._read_config_file,
-                          fakes.FAKE_SECTION1)
+                          fakes.FAKE_FILE_PATH,
+                          section=fakes.FAKE_SECTION1)
 
         read_mock.assert_called_once_with(fakes.FAKE_FILE_PATH)
 
     def test_read_config_file_path_invalid_section(self):
-        yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH)
+        yum_config = self._create_yum_config_obj()
 
         parser_mock = mock.Mock()
         self.mock_object(configparser, 'ConfigParser',
@@ -119,11 +93,12 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
 
         self.assertRaises(exc.TripleOYumConfigInvalidSection,
                           yum_config._read_config_file,
-                          'invalid_section')
+                          fakes.FAKE_FILE_PATH,
+                          section='invalid_section')
 
         read_mock.assert_called_once_with(fakes.FAKE_FILE_PATH)
 
-    def test_read_config_file_dir(self):
+    def test_get_config_files(self):
         yum_config = self._create_yum_config_obj(
             dir_path=fakes.FAKE_DIR_PATH,
             file_extension='.conf')
@@ -133,50 +108,28 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
             parser_mocks.append(parser_mock)
             self.mock_object(parser_mock, 'read')
 
-        self.mock_object(parser_mocks[1], 'sections',
+        self.mock_object(parser_mocks[0], 'sections',
                          mock.Mock(return_value=[]))
         # second file inside dir will have the expected sections
-        self.mock_object(parser_mocks[2], 'sections',
+        self.mock_object(parser_mocks[1], 'sections',
                          mock.Mock(return_value=fakes.FAKE_SECTIONS))
+        self.mock_object(parser_mocks[2], 'sections',
+                         mock.Mock(return_value=[]))
         self.mock_object(os, 'listdir',
                          mock.Mock(return_value=fakes.FAKE_DIR_FILES))
         self.mock_object(os, 'access', mock.Mock(return_value=True))
         self.mock_object(configparser, 'ConfigParser',
                          mock.Mock(side_effect=parser_mocks))
 
-        config_parser, file_path = yum_config._read_config_file(
-            fakes.FAKE_SECTION1)
-        expected_dir_path = os.path.join(fakes.FAKE_DIR_PATH,
-                                         fakes.FAKE_DIR_FILES[1])
+        result = yum_config._get_config_files(fakes.FAKE_SECTION1)
+        expected_dir_path = [os.path.join(fakes.FAKE_DIR_PATH,
+                                          fakes.FAKE_DIR_FILES[1])]
 
-        self.assertEqual(parser_mocks[0], config_parser)
-        self.assertEqual(expected_dir_path, file_path)
-
-    def test_read_config_file_dir_section_not_found(self):
-        yum_config = self._create_yum_config_obj(
-            dir_path=fakes.FAKE_DIR_PATH,
-            file_extension='.conf')
-        parser_mock = mock.Mock()
-        self.mock_object(parser_mock, 'read')
-        self.mock_object(parser_mock, 'sections',
-                         mock.Mock(return_value=[]))
-        self.mock_object(configparser, 'ConfigParser',
-                         mock.Mock(return_value=parser_mock))
-
-        self.mock_object(os, 'listdir',
-                         mock.Mock(return_value=fakes.FAKE_DIR_FILES))
-        self.mock_object(os, 'access', mock.Mock(return_value=True))
-
-        config_parser, file_path = yum_config._read_config_file(
-            fakes.FAKE_SECTION1)
-
-        self.assertEqual(parser_mock, config_parser)
-        self.assertIsNone(file_path)
+        self.assertEqual(expected_dir_path, result)
 
     @mock.patch('builtins.open')
     def test_update_section(self, open):
         yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH,
             valid_options=fakes.FAKE_SUPP_OPTIONS)
         config_parser = fakes.FakeConfigParser({fakes.FAKE_SECTION1: {}})
 
@@ -186,13 +139,14 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
 
         updates = {fakes.FAKE_OPTION1: 'new_fake_value'}
 
-        yum_config.update_section(fakes.FAKE_SECTION1, updates)
+        yum_config.update_section(fakes.FAKE_SECTION1, updates,
+                                  file_path=fakes.FAKE_FILE_PATH)
 
-        mock_read_config.assert_called_once_with(fakes.FAKE_SECTION1)
+        mock_read_config.assert_called_once_with(fakes.FAKE_FILE_PATH,
+                                                 section=fakes.FAKE_SECTION1)
 
     def test_update_section_invalid_options(self):
         yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH,
             valid_options=fakes.FAKE_SUPP_OPTIONS)
 
         updates = {'invalid_option': 'new_fake_value'}
@@ -200,15 +154,15 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
         self.assertRaises(exc.TripleOYumConfigInvalidOption,
                           yum_config.update_section,
                           fakes.FAKE_SECTION1,
-                          updates)
+                          updates,
+                          file_path=fakes.FAKE_FILE_PATH)
 
     def test_update_section_file_not_found(self):
         yum_config = self._create_yum_config_obj(
-            file_path=fakes.FAKE_FILE_PATH,
             valid_options=fakes.FAKE_SUPP_OPTIONS)
-        mock_read_config = self.mock_object(
-            yum_config, '_read_config_file',
-            mock.Mock(return_value=(mock.Mock(), None)))
+        mock_get_configs = self.mock_object(
+            yum_config, '_get_config_files',
+            mock.Mock(return_value=[]))
 
         updates = {fakes.FAKE_OPTION1: 'new_fake_value'}
 
@@ -216,8 +170,7 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
                           yum_config.update_section,
                           fakes.FAKE_SECTION1,
                           updates)
-
-        mock_read_config.assert_called_once_with(fakes.FAKE_SECTION1)
+        mock_get_configs.assert_called_once_with(fakes.FAKE_SECTION1)
 
 
 @ddt.ddt
@@ -229,8 +182,7 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
         self.mock_object(os.path, 'isfile')
         self.mock_object(os, 'access')
         self.mock_object(os.path, 'isdir')
-        cfg_obj = yum_cfg.TripleOYumRepoConfig(
-            file_path=fakes.FAKE_FILE_PATH)
+        cfg_obj = yum_cfg.TripleOYumRepoConfig()
 
         mock_update = self.mock_object(yum_cfg.TripleOYumConfig,
                                        'update_section')
@@ -240,10 +192,12 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
         if enable is not None:
             expected_updates['enabled'] = '1' if enable else '0'
 
-        cfg_obj.update_section(fakes.FAKE_SECTION1, updates, enable=enable)
+        cfg_obj.update_section(fakes.FAKE_SECTION1, set_dict=updates,
+                               file_path=fakes.FAKE_FILE_PATH, enabled=enable)
 
         mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
-                                            expected_updates)
+                                            expected_updates,
+                                            file_path=fakes.FAKE_FILE_PATH)
 
 
 @ddt.ddt

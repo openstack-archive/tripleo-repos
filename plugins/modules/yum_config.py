@@ -24,7 +24,7 @@ options:
           - The type of yum configuration to be changed.
         required: true
         type: str
-        choices: [repo, module, global]
+        choices: [repo, module, global, 'enable-compose-repos']
     name:
         description:
           - Name of the repo or module to be changed. This options is
@@ -65,6 +65,40 @@ options:
           - Absolute path of the directory that contains the configuration
             file to be changed.
         type: path
+        default: /etc/yum.repos.d
+    compose_url:
+        description:
+          - URL that contains CentOS compose repositories.
+        type: str
+    centos_release:
+        description:
+          - Target CentOS release.
+        type: str
+        choices: [centos-stream-8, centos-stream-9]
+    arch:
+        description:
+          - System architecture which the repos will be configure.
+        type: str
+        choices: [aarch64, ppc64le, x86_64]
+        default: x86_64
+    variants:
+        description:
+          - Repository variants that should be configured. If not provided,
+            all available variants will be configured.
+        type: list
+        elements: str
+    disable_conflicting_variants:
+        description:
+          - Disable all repos from the same directory that match variants'
+            name.
+        type: bool
+        default: false
+    disable_repos:
+        description:
+          - List with file path of repos that should be disabled after
+            successfully enabling all compose repos.
+        type: list
+        elements: str
 
 author:
     - Douglas Viroel (@viroel)
@@ -113,6 +147,20 @@ EXAMPLES = r'''
     set_options:
       skip_if_unavailable: "False"
       keepcache: "0"
+
+- name: Configure a set of repos based on latest CentOS Stream 8 compose
+  become: true
+  become_user: root
+  tripleo_yup_config:
+    compose_url: https://composes.centos.org/latest-CentOS-Stream-8/compose/
+    centos_release: centos-stream-8
+    variants:
+      - AppStream
+      - BaseOS
+    disable_conflicting_variants: true
+    disable_repos:
+      - /etc/yum.repos.d/CentOS-Linux-AppStream.repo
+      - /etc/yum.repos.d/CentOS-Linux-BaseOS.repo
 '''
 
 RETURN = r''' # '''
@@ -121,8 +169,14 @@ from ansible.module_utils.basic import AnsibleModule  # noqa: E402
 
 
 def run_module():
+    try:
+        import ansible_collections.tripleo.repos.plugins.module_utils. \
+            tripleo_repos.yum_config.constants as const
+    except ImportError:
+        import tripleo_repos.yum_config.constants as const
     # define available arguments/parameters a user can pass to the module
-    supported_config_types = ['repo', 'module', 'global']
+    supported_config_types = ['repo', 'module', 'global',
+                              'enable-compose-repos']
     supported_module_operations = ['install', 'remove', 'reset']
     module_args = dict(
         type=dict(type='str', required=True, choices=supported_config_types),
@@ -133,7 +187,17 @@ def run_module():
         profile=dict(type='str'),
         set_options=dict(type='dict', default={}),
         file_path=dict(type='path'),
-        dir_path=dict(type='path'),
+        dir_path=dict(type='path', default=const.YUM_REPO_DIR),
+        compose_url=dict(type='str'),
+        centos_release=dict(type='str',
+                            choices=const.COMPOSE_REPOS_RELEASES),
+        arch=dict(type='str', choices=const.COMPOSE_REPOS_SUPPORTED_ARCHS,
+                  default='x86_64'),
+        variants=dict(type='list', default=[],
+                      elements='str'),
+        disable_conflicting_variants=dict(type='bool', default=False),
+        disable_repos=dict(type='list', default=[],
+                           elements='str'),
     )
 
     module = AnsibleModule(
@@ -141,6 +205,7 @@ def run_module():
         required_if=[
             ["type", "repo", ["name"]],
             ["type", "module", ["name"]],
+            ["type", "enable-compose-repos", ["compose_url"]],
         ],
         supports_check_mode=False
     )
@@ -162,18 +227,36 @@ def run_module():
                 tripleo_repos.yum_config.dnf_manager as dnf_mgr
             import ansible_collections.tripleo.repos.plugins.module_utils.\
                 tripleo_repos.yum_config.yum_config as cfg
+            import ansible_collections.tripleo.repos.plugins.module_utils. \
+                tripleo_repos.yum_config.compose_repos as repos
         except ImportError:
             import tripleo_repos.yum_config.dnf_manager as dnf_mgr
             import tripleo_repos.yum_config.yum_config as cfg
+            import tripleo_repos.yum_config.compose_repos as repos
 
         if module.params['type'] == 'repo':
             config_obj = cfg.TripleOYumRepoConfig(
-                file_path=module.params['file_path'],
                 dir_path=module.params['dir_path'])
             config_obj.update_section(
                 module.params['name'],
                 m_set_opts,
-                enable=module.params['enabled'])
+                file_path=module.params['file_path'],
+                enabled=module.params['enabled'])
+
+        elif module.params['type'] == 'enable-compose-repos':
+            # 1. Create compose repo config object
+            repo_obj = repos.TripleOYumComposeRepoConfig(
+                module.params['compose_url'],
+                module.params['centos_release'],
+                dir_path=module.params['dir_path'],
+                arch=module.params['arch'])
+            # 2. enable CentOS compose repos
+            repo_obj.enable_compose_repos(
+                variants=module.params['variants'],
+                override_repos=module.params['disable_conflicting_variants'])
+            # 3. Disable all repos provided in disable_repos
+            for file in module.params['disable_repos']:
+                repo_obj.update_all_sections(file, enabled=False)
 
         elif module.params['type'] == 'module':
             dnf_mod_mgr = dnf_mgr.DnfModuleManager()

@@ -20,8 +20,9 @@ from unittest import mock
 from . import fakes
 from . import mock_modules  # noqa: F401
 import tripleo_repos.yum_config.__main__ as main
-import tripleo_repos.yum_config.yum_config as yum_cfg
+import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+import tripleo_repos.yum_config.yum_config as yum_cfg
 
 
 class TestTripleoYumConfigBase(unittest.TestCase):
@@ -56,10 +57,10 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
         main.main()
         expected_dict = {'key1': 'value1', 'key2': 'value2'}
 
-        mock_yum_repo_obj.assert_called_once_with(
-            file_path=fakes.FAKE_FILE_PATH, dir_path=None)
+        mock_yum_repo_obj.assert_called_once_with(dir_path=const.YUM_REPO_DIR)
         mock_update_section.assert_called_once_with(
-            'fake_repo', expected_dict, enable=True)
+            'fake_repo', expected_dict, file_path=fakes.FAKE_FILE_PATH,
+            enabled=True)
 
     @ddt.data('enable', 'disable', 'reset', 'install', 'remove')
     def test_main_module(self, operation):
