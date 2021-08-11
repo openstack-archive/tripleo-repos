@@ -18,9 +18,8 @@ import unittest
 import tripleo_repos.get_hash.tripleo_hash_info as thi
 import tripleo_repos.get_hash.exceptions as exc
 from . import fakes as test_fakes
-import requests_mock
 from unittest import mock
-from unittest.mock import mock_open
+from unittest.mock import mock_open, MagicMock, patch
 
 
 @mock.patch(
@@ -41,11 +40,10 @@ class TestGetHashInfo(unittest.TestCase):
             '1f5a41f31db8e3eb51caa9c0e201ab0583747be8',
             'None',
         )
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/component/common/current-tripleo/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             mock_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', 'common', 'current-tripleo'
             )
@@ -55,12 +53,10 @@ class TestGetHashInfo(unittest.TestCase):
             self.assertEqual(expected_result, actual_result)
 
     def test_resolve_repo_url_component_commit_yaml(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            # test component url
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/component/common/current-tripleo/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             c8_component_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', 'common', 'current-tripleo'
             )
@@ -71,13 +67,10 @@ class TestGetHashInfo(unittest.TestCase):
             )
 
     def test_resolve_repo_url_centos8_repo_md5(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            # test vanilla centos8 url
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo.md5',  # noqa
-
-                text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             c8_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', None, 'current-tripleo'
             )
@@ -88,13 +81,10 @@ class TestGetHashInfo(unittest.TestCase):
             )
 
     def test_resolve_repo_url_centos7_commit_yaml(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            # test centos7 url
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos7-master/current-tripleo/commit.yaml',  # noqa
-
-                text=test_fakes.TEST_COMMIT_YAML_CENTOS_7,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_CENTOS_7, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             c7_hash_info = thi.TripleOHashInfo(
                 'centos7', 'master', None, 'current-tripleo'
             )
@@ -105,12 +95,10 @@ class TestGetHashInfo(unittest.TestCase):
             )
 
     def test_get_tripleo_hash_info_centos8_md5(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo.md5',  # noqa
-
-                text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             created_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', None, 'current-tripleo'
             )
@@ -126,11 +114,10 @@ class TestGetHashInfo(unittest.TestCase):
         expected_commit_hash = '476a52df13202a44336c8b01419f8b73b93d93eb'
         expected_distro_hash = '1f5a41f31db8e3eb51caa9c0e201ab0583747be8'
         expected_full_hash = '476a52df13202a44336c8b01419f8b73b93d93eb_1f5a41f3'  # noqa
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-victoria/component/common/tripleo-ci-testing/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             created_hash_info = thi.TripleOHashInfo(
                 'centos8', 'victoria', 'common', 'tripleo-ci-testing'
             )
@@ -150,11 +137,10 @@ class TestGetHashInfo(unittest.TestCase):
         expected_commit_hash = 'b5ef03c9c939db551b03e9490edc6981ff582035'
         expected_distro_hash = '76ebc4655502820b7677579349fd500eeca292e6'
         expected_full_hash = 'b5ef03c9c939db551b03e9490edc6981ff582035_76ebc465'  # noqa
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos7-master/tripleo-ci-testing/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_CENTOS_7,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_CENTOS_7, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             created_hash_info = thi.TripleOHashInfo(
                 'centos7', 'master', None, 'tripleo-ci-testing'
             )
@@ -169,11 +155,10 @@ class TestGetHashInfo(unittest.TestCase):
             self.assertEqual(created_hash_info.os_version, 'centos7')
 
     def test_bad_config_file(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos7-master/tripleo-ci-testing/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_CENTOS_7,
-            )
+        mocked = MagicMock(
+            return_value=test_fakes.TEST_COMMIT_YAML_CENTOS_7)
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             with mock.patch(
                 'builtins.open',
                 new_callable=mock_open,
@@ -188,30 +173,12 @@ class TestGetHashInfo(unittest.TestCase):
                     'tripleo-ci-testing',
                 )
 
-    def test_missing_config_file(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos7-master/tripleo-ci-testing/commit.yaml',  # noqa
-                text=test_fakes.TEST_COMMIT_YAML_CENTOS_7,
-            )
-            with mock.patch('os.path.isfile') as mock_is_file:
-                mock_is_file.return_value = False
-                self.assertRaises(
-                    exc.TripleOHashMissingConfig,
-                    thi.TripleOHashInfo,
-                    'centos7',
-                    'master',
-                    None,
-                    'tripleo-ci-testing',
-                )
-
     def test_override_config_dlrn_url(self, mock_config):
         expected_dlrn_url = 'https://foo.bar.baz/centos8-master/component/common/current-tripleo/commit.yaml'  # noqa
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                expected_dlrn_url,
-                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             mock_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', 'common', 'current-tripleo',
                 {'dlrn_url': 'https://foo.bar.baz'}
@@ -220,11 +187,10 @@ class TestGetHashInfo(unittest.TestCase):
 
     def test_override_config_dlrn_url_empty_ignored(self, mock_config):
         expected_dlrn_url = 'https://trunk.rdoproject.org/centos8-master/component/common/current-tripleo/commit.yaml'  # noqa
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                expected_dlrn_url,
-                text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             mock_hash_info = thi.TripleOHashInfo(
                 'centos8', 'master', 'common', 'current-tripleo',
                 {'dlrn_url': ''}

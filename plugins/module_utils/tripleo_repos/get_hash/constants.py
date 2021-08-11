@@ -36,3 +36,50 @@ This is the path that we expect to find the system installed config.yaml.
 The path is specified in [options.data_files] of the project setup.cfg.
 """
 CONFIG_PATH = '/usr/local/etc/tripleo_get_hash/config.yaml'
+
+DEFAULT_CONFIG = {
+    "tripleo_releases": [
+        "master",
+        "wallaby",
+        "victoria",
+        "ussuri",
+        "train",
+        "stein",
+        "queens",
+        "osp16-2",
+        "osp17"
+    ],
+    "dlrn_url": "https://trunk.rdoproject.org",
+    "rdo_named_tags": [
+        "current",
+        "consistent",
+        "component-ci-testing",
+        "promoted-components",
+        "tripleo-ci-testing",
+        "current-tripleo",
+        "current-tripleo-rdo"
+    ],
+    "tripleo_ci_components": [
+        "baremetal",
+        "cinder",
+        "clients",
+        "cloudops",
+        "common",
+        "compute",
+        "glance",
+        "manila",
+        "network",
+        "octavia",
+        "security",
+        "swift",
+        "tempest",
+        "tripleo",
+        "ui",
+        "validation"
+    ],
+    "os_versions": [
+        "centos7",
+        "centos8",
+        "rhel8"
+    ]
+}

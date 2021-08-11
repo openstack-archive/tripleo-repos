@@ -112,12 +112,8 @@ def run_module():
 
     try:
 
-        try:
-            from ansible_collections.tripleo.repos.plugins.module_utils.\
-                tripleo_repo.get_hash.tripleo_hash_info import TripleOHashInfo
-        except ImportError:
-            from tripleo_repos.get_hash.tripleo_hash_info import \
-                TripleOHashInfo
+        from ansible_collections.tripleo.repos.plugins.module_utils.\
+            tripleo_repos.get_hash.tripleo_hash_info import TripleOHashInfo
 
         os_version = module.params.get('os_version')
         release = module.params.get('release')

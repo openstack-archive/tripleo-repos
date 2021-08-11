@@ -19,10 +19,28 @@ import logging
 import sys
 import os
 import yaml
-import requests
-from .constants import CONFIG_PATH, CONFIG_KEYS
-from .exceptions import TripleOHashMissingConfig, TripleOHashInvalidConfig
+from .constants import CONFIG_PATH, CONFIG_KEYS, DEFAULT_CONFIG
+from .exceptions import (
+    TripleOHashInvalidConfig)
+from typing import Tuple
+# portable http_get that uses either ansible recommended way or python native
+# urllib.
+try:
+    from ansible.module_utils.urls import open_url
 
+    def http_get(url: str) -> Tuple[str, int]:
+        response = open_url(url, method='GET')
+        return (response.read(), response.status)
+except ImportError:
+    import gzip
+    from urllib.request import urlopen
+
+    def http_get(url: str) -> Tuple[str, int]:
+        # https://stackoverflow.com/questions/35122232/urllib-request-urlopen-return-bytes-but-i-cannot-decode-it
+        response = urlopen(url)
+        return (
+            gzip.decompress(response.read()).decode('utf-8'),
+            int(response.status))
 
 __metaclass__ = type
 
@@ -120,11 +138,8 @@ class TripleOHashInfo:
         elif local_config:
             config_path = local_config
         else:
-            raise TripleOHashMissingConfig(
-                "Configuration file not found at {0} or {1}".format(
-                    CONFIG_PATH, local_config
-                )
-            )
+            logging.info("Using embedded config file")
+            return DEFAULT_CONFIG
         logging.info("Using config file at %s", config_path)
         with open(config_path, 'r') as config_yaml:
             loaded_config = yaml.safe_load(config_yaml)
@@ -164,7 +179,7 @@ class TripleOHashInfo:
         repo_url = self._resolve_repo_url(config['dlrn_url'])
         self.dlrn_url = repo_url
 
-        repo_url_response = requests.get(repo_url).text
+        repo_url_response, status = http_get(repo_url)
         if repo_url.endswith('commit.yaml'):
             from_commit_yaml = self._hashes_from_commit_yaml(repo_url_response)
             self.full_hash = from_commit_yaml[0]

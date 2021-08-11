@@ -14,11 +14,10 @@
 #
 #
 
-import requests_mock
 import sys
 import unittest
 from unittest import mock
-from unittest.mock import mock_open
+from unittest.mock import mock_open, MagicMock, patch
 import yaml
 
 import tripleo_repos.get_hash.exceptions as exc
@@ -37,11 +36,10 @@ class TestGetHash(unittest.TestCase):
     """
 
     def test_centos_8_current_tripleo_stable(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-victoria/current-tripleo/delorean.repo.md5',  # noqa
-                text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             args = ['--os-version', 'centos8', '--release', 'victoria']
             sys.argv[1:] = args
             main_res = tgh.main()
@@ -57,11 +55,10 @@ class TestGetHash(unittest.TestCase):
         args = ['--verbose']
         debug_msgs = []
 
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo.md5',  # noqa
-                text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
             with self.assertLogs() as captured:
                 sys.argv[1:] = args
                 tgh.main()
@@ -74,11 +71,12 @@ class TestGetHash(unittest.TestCase):
 
     def test_verbose_logging_off(self, mock_config):
         debug_msgs = []
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                'https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo.md5',  # noqa
-                text=test_fakes.TEST_REPO_MD5,
-            )
+
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
+
             args = ['--tag', 'current-tripleo', '--os-version', 'centos8']
             with self.assertLogs() as captured:
                 sys.argv[1:] = args
@@ -101,14 +99,13 @@ class TestGetHash(unittest.TestCase):
         config_file.close()
         # interate for each of config components
         for component in config_yaml['tripleo_ci_components']:
-            with requests_mock.Mocker() as req_mock:
-                req_mock.get(
-                    "https://trunk.rdoproject.org/centos8-master/component"
-                    "/{}/current-tripleo/commit.yaml".format(
-                        component
-                    ),
-                    text=test_fakes.TEST_COMMIT_YAML_COMPONENT,
-                )
+
+            mocked = MagicMock(
+                return_value=(test_fakes.TEST_COMMIT_YAML_COMPONENT, 200))
+            with patch(
+                    'tripleo_repos.get_hash.tripleo_hash_info.http_get',
+                    mocked):
+
                 args = ['--component', "{}".format(component)]
                 sys.argv[1:] = args
                 main_res = tgh.main()
@@ -142,14 +139,12 @@ class TestGetHash(unittest.TestCase):
         config_file.close()
         # iterate for each of config named tags
         for tag in config_yaml['rdo_named_tags']:
-            with requests_mock.Mocker() as req_mock:
-                req_mock.get(
-                    "https://trunk.rdoproject.org/centos8-master"
-                    "/{}/delorean.repo.md5".format(
-                        tag
-                    ),
-                    text=test_fakes.TEST_REPO_MD5,
-                )
+            mocked = MagicMock(
+                return_value=(test_fakes.TEST_REPO_MD5, 200))
+            with patch(
+                    'tripleo_repos.get_hash.tripleo_hash_info.http_get',
+                    mocked):
+
                 args = ['--tag', "{}".format(tag)]
                 sys.argv[1:] = args
                 main_res = tgh.main()
@@ -163,12 +158,12 @@ class TestGetHash(unittest.TestCase):
                 self.assertEqual(tag, main_res.tag)
 
     def test_override_dlrn_url(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                "https://awoo.com/awoo/centos8-master/current-tripleo"
-                "/delorean.repo.md5",
-                text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get',
+                mocked):
+
             args = ['--dlrn-url', 'https://awoo.com/awoo']
             sys.argv[1:] = args
             main_res = tgh.main()
@@ -179,11 +174,11 @@ class TestGetHash(unittest.TestCase):
             )
 
     def test_override_os_version_release_rhel8(self, mock_config):
-        with requests_mock.Mocker() as req_mock:
-            req_mock.get(
-                "https://awoo.com/awoo/rhel8-osp16-2/current-tripleo"
-                "/delorean.repo.md5", text=test_fakes.TEST_REPO_MD5,
-            )
+        mocked = MagicMock(
+            return_value=(test_fakes.TEST_REPO_MD5, 200))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get',
+                mocked):
             args = [
                 '--dlrn-url',
                 'https://awoo.com/awoo',
