@@ -21,7 +21,8 @@ import os
 import yaml
 from .constants import CONFIG_PATH, CONFIG_KEYS, DEFAULT_CONFIG
 from .exceptions import (
-    TripleOHashInvalidConfig)
+    TripleOHashInvalidConfig, TripleOHashInvalidDLRNResponse
+)
 from typing import Tuple
 # portable http_get that uses either ansible recommended way or python native
 # urllib.
@@ -32,14 +33,13 @@ try:
         response = open_url(url, method='GET')
         return (response.read(), response.status)
 except ImportError:
-    import gzip
     from urllib.request import urlopen
 
     def http_get(url: str) -> Tuple[str, int]:
         # https://stackoverflow.com/questions/35122232/urllib-request-urlopen-return-bytes-but-i-cannot-decode-it
         response = urlopen(url)
         return (
-            gzip.decompress(response.read()).decode('utf-8'),
+            response.read().decode('utf-8'),
             int(response.status))
 
 __metaclass__ = type
@@ -180,6 +180,16 @@ class TripleOHashInfo:
         self.dlrn_url = repo_url
 
         repo_url_response, status = http_get(repo_url)
+
+        if status != 200:
+            error_str = (
+                "Invalid response received from the delorean server. Queried "
+                "URL: {0}. Response code: {1}. Response text: {2}. Failed to "
+                "create TripleOHashInfo object."
+            ).format(repo_url, status, repo_url_response)
+            logging.error(error_str)
+            raise TripleOHashInvalidDLRNResponse(error_str)
+
         if repo_url.endswith('commit.yaml'):
             from_commit_yaml = self._hashes_from_commit_yaml(repo_url_response)
             self.full_hash = from_commit_yaml[0]

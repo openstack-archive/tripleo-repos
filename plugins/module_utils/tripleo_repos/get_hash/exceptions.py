@@ -50,3 +50,13 @@ class TripleOHashInvalidParameter(Base):
 
     def __init__(self, error_msg):
         super(TripleOHashInvalidParameter, self).__init__(error_msg)
+
+
+class TripleOHashInvalidDLRNResponse(Base):
+    """Invalid response received from the DLRN server.  This is seen if
+    the delorean server replies with a status code other than 200 OK for
+    a query to commit.yaml or delorean.repo.md5.
+    """
+
+    def __init__(self, error_msg):
+        super(TripleOHashInvalidDLRNResponse, self).__init__(error_msg)

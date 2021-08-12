@@ -196,3 +196,32 @@ class TestGetHashInfo(unittest.TestCase):
                 {'dlrn_url': ''}
             )
             self.assertEqual(expected_dlrn_url, mock_hash_info.dlrn_url)
+
+    def test_404_dlrn_http_status_code(self, mock_config):
+        bad_dlrn_url = 'https://server.ok/centos8-master/component/common/current-tripleo/commit.yaml'  # noqa
+        response_text_404 = "Some kind of 404 text NOT FOUND!"
+        mocked = MagicMock(
+            return_value=(response_text_404, 404))
+        with patch(
+                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
+            with self.assertLogs() as captured:
+                self.assertRaises(
+                    exc.TripleOHashInvalidDLRNResponse,
+                    thi.TripleOHashInfo,
+                    'centos8',
+                    'master',
+                    'common',
+                    'current-tripleo',
+                    {'dlrn_url': 'https://server.ok'},
+                )
+            debug_msgs = [
+                record.message
+                for record in captured.records
+                if record.levelname == 'ERROR'
+            ]
+            error_str = (
+                "Invalid response received from the delorean server. Queried "
+                "URL: {0}. Response code: {1}. Response text: {2}. Failed to "
+                "create TripleOHashInfo object."
+            ).format(bad_dlrn_url, '404', response_text_404)
+            self.assertIn(error_str, debug_msgs)
