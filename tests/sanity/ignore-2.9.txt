@@ -1,1 +1,1 @@
-plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py replace-urlopen  # we did it right
+ignore.txt

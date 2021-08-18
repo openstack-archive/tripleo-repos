@@ -24,7 +24,8 @@ build_ignore:
   - report.html
   - setup.cfg
   - setup.py
-  - tests
+  - "tests/unit/*.*"
+  - README.rst
   - tox.ini
   - tripleo_repos
   - zuul.d

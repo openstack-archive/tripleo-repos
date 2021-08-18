@@ -29,10 +29,8 @@
               - openstack-tox-py39
         - tripleo-build-containers-ubi-8:
             dependencies: *deps_unit_lint_cprovider
-        - tox-sanity-py36:
-            voting: false
-        - tox-sanity-py39:
-            voting: false
+        - tox-sanity-py36
+        - tox-sanity-py39
     gate:
       jobs:
         - openstack-tox-pep8:
