@@ -18,12 +18,11 @@ from __future__ import (absolute_import, division, print_function)
 import logging
 import sys
 import os
-import yaml
 from .constants import CONFIG_PATH, CONFIG_KEYS, DEFAULT_CONFIG
 from .exceptions import (
     TripleOHashInvalidConfig, TripleOHashInvalidDLRNResponse
 )
-from typing import Tuple
+from typing import Any, Tuple
 # portable http_get that uses either ansible recommended way or python native
 # urllib.
 try:
@@ -57,6 +56,11 @@ class TripleOHashInfo:
     """
 
     @classmethod
+    def load_yaml(cls, filename: str) -> Any:
+        import yaml
+        return yaml.safe_load(filename)
+
+    @classmethod
     def load_logging(cls):
         """
         This is a class method since we call it from the CLI entrypoint
@@ -88,6 +92,29 @@ class TripleOHashInfo:
         logger.setLevel(logging.INFO)
 
     @classmethod
+    def _resolve_local_config_path(cls):
+        """ Load local config from disk from expected locations. """
+        paths = [
+            # pip install --user
+            os.path.expanduser(
+                "~/.local/etc/tripleo_get_hash/config.yaml"),
+            # root install
+            "/etc/tripleo_get_hash/config.yaml",
+            # embedded config.yaml as fallback
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "config.yaml")
+        ]
+        for _local_config in paths:
+            if cls._check_read_file(_local_config):
+                return _local_config
+
+    @classmethod
+    def _check_read_file(cls, filepath):
+        if os.path.isfile(filepath) and os.access(filepath, os.R_OK):
+            return True
+        return False
+
+    @classmethod
     def load_config(cls, passed_config=None):
         """
         This is a class method since we call it from the CLI entrypoint
@@ -107,33 +134,12 @@ class TripleOHashInfo:
         :return: a config dictionary with the keys in constants.CONFIG_KEYS
         """
 
-        def _check_read_file(filepath):
-            if os.path.isfile(filepath) and os.access(filepath, os.R_OK):
-                return True
-            return False
-
-        def _resolve_local_config_path():
-            """ Load local config from disk from expected locations. """
-            paths = [
-                # pip install --user
-                os.path.expanduser(
-                    "~/.local/etc/tripleo_get_hash/config.yaml"),
-                # root install
-                "/etc/tripleo_get_hash/config.yaml",
-                # embedded config.yaml as fallback
-                os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)), "config.yaml")
-            ]
-            for _local_config in paths:
-                if _check_read_file(_local_config):
-                    return _local_config
-
         passed_config = passed_config or {}
         result_config = {}
         config_path = ''
-        local_config = _resolve_local_config_path()
+        local_config = cls._resolve_local_config_path()
         # prefer const.CONFIG_PATH then local_config
-        if _check_read_file(CONFIG_PATH):
+        if cls._check_read_file(CONFIG_PATH):
             config_path = CONFIG_PATH
         elif local_config:
             config_path = local_config
@@ -142,7 +148,7 @@ class TripleOHashInfo:
             return DEFAULT_CONFIG
         logging.info("Using config file at %s", config_path)
         with open(config_path, 'r') as config_yaml:
-            loaded_config = yaml.safe_load(config_yaml)
+            loaded_config = cls.load_yaml(config_yaml)
         for k in CONFIG_KEYS:
             if k not in loaded_config:
                 error_str = (
@@ -248,7 +254,7 @@ class TripleOHashInfo:
 
         :returns tuple of strings full, commit, distro, extended hashes
         """
-        parsed_yaml = yaml.safe_load(delorean_result)
+        parsed_yaml = self.load_yaml(delorean_result)
         commit = parsed_yaml['commits'][0]['commit_hash']
         distro = parsed_yaml['commits'][0]['distro_hash']
         full = "%s_%s" % (commit, distro[0:8])

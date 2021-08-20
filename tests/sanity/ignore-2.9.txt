@@ -1,3 +1,1 @@
-plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py import
 plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py replace-urlopen  # we did it right
-plugins/module_utils/tripleo_repos/main.py import:traceback
