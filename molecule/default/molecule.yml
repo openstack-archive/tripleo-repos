@@ -1,0 +1,12 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: quay.io/centos/centos:stream8
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

@@ -21,6 +21,7 @@
             vars:
               tox_envlist: pep8,packaging
         - openstack-tox-py39
+        - tripleo-tox-molecule
         - tripleo-buildimage-overcloud-full-centos-8:
             dependencies: &deps_unit_lint_cprovider
               - openstack-tox-pep8

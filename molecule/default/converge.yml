@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+
+    - name: "Test yum_config repo"
+      tripleo.repos.yum_config:
+        type: repo
+        name: appstream
+        enabled: true
+      tags:
+        # TODO: fix yum_config to correctly report changed state and uncomment
+        # the line below which disables molecule idemptotence test.
+        - molecule-idempotence-notest
