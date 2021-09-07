@@ -29,17 +29,23 @@ try:
     from ansible.module_utils.urls import open_url
 
     def http_get(url: str) -> Tuple[str, int]:
-        response = open_url(url, method='GET')
-        return (response.read(), response.status)
+        try:
+            response = open_url(url, method='GET')
+            return (response.read(), response.status)
+        except Exception as e:
+            return (str(e), -1)
 except ImportError:
     from urllib.request import urlopen
 
     def http_get(url: str) -> Tuple[str, int]:
         # https://stackoverflow.com/questions/35122232/urllib-request-urlopen-return-bytes-but-i-cannot-decode-it
-        response = urlopen(url)
-        return (
-            response.read().decode('utf-8'),
-            int(response.status))
+        try:
+            response = urlopen(url)
+            return (
+                response.read().decode('utf-8'),
+                int(response.status))
+        except Exception as e:
+            return (str(e), -1)
 
 __metaclass__ = type
 
@@ -145,10 +151,11 @@ class TripleOHashInfo:
             config_path = local_config
         else:
             logging.info("Using embedded config file")
-            return DEFAULT_CONFIG
+            loaded_config = DEFAULT_CONFIG
         logging.info("Using config file at %s", config_path)
-        with open(config_path, 'r') as config_yaml:
-            loaded_config = cls.load_yaml(config_yaml)
+        if config_path != '':
+            with open(config_path, 'r') as config_yaml:
+                loaded_config = cls.load_yaml(config_yaml)
         for k in CONFIG_KEYS:
             if k not in loaded_config:
                 error_str = (

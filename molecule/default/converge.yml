@@ -12,3 +12,13 @@
         # TODO: fix yum_config to correctly report changed state and uncomment
         # the line below which disables molecule idemptotence test.
         - molecule-idempotence-notest
+
+    - name: "Check get_hash"
+      tripleo.repos.get_hash:
+        release: master
+    - name: "Check get_hash with invalid url"
+      tripleo.repos.get_hash:
+        release: master
+        dlrn_url: 'https://httpbin.org/status/404'
+      register: result
+      failed_when: result is success
