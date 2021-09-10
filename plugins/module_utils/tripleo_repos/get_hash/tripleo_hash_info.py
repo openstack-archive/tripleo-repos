@@ -22,13 +22,12 @@ from .constants import CONFIG_PATH, CONFIG_KEYS, DEFAULT_CONFIG
 from .exceptions import (
     TripleOHashInvalidConfig, TripleOHashInvalidDLRNResponse
 )
-from typing import Any, Tuple
 # portable http_get that uses either ansible recommended way or python native
 # urllib.
 try:
     from ansible.module_utils.urls import open_url
 
-    def http_get(url: str) -> Tuple[str, int]:
+    def http_get(url):
         try:
             response = open_url(url, method='GET')
             return (response.read(), response.status)
@@ -37,7 +36,7 @@ try:
 except ImportError:
     from urllib.request import urlopen
 
-    def http_get(url: str) -> Tuple[str, int]:
+    def http_get(url):
         # https://stackoverflow.com/questions/35122232/urllib-request-urlopen-return-bytes-but-i-cannot-decode-it
         try:
             response = urlopen(url)
@@ -62,7 +61,7 @@ class TripleOHashInfo:
     """
 
     @classmethod
-    def load_yaml(cls, filename: str) -> Any:
+    def load_yaml(cls, filename):
         import yaml
         return yaml.safe_load(filename)
 
@@ -270,7 +269,7 @@ class TripleOHashInfo:
             "delorean commit.yaml results %s", parsed_yaml['commits'][0])
         return full, commit, distro, extended
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         """Returns a string representation of the object"""
         attrs = vars(self)
         return ',\n'.join('%s: %s' % item for item in attrs.items())
