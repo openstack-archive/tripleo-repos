@@ -2,32 +2,33 @@
 - name: Verify
   hosts: all
   tasks:
-    - name: Validate if RealTime repo is disabled
+    - name: Check if RT or CR repos are disabled
+      vars:
+        section_name: "{{ 'rt' if (ansible_distribution_major_version is version(8, '>=')) else 'cr' }}"
+        repo_path: /etc/yum.repos.d/CentOS-{{ 'Stream-RealTime' if (ansible_distribution_major_version is version(8, '>=')) else 'CR' }}.repo
       include_tasks: assert_ini_key_value.yml
       with_items:
-       - name: RealTime
-         path: /etc/yum.repos.d/CentOS-Stream-RealTime.repo
-         section: rt
+       - name: "{{ section_name|upper }}"
+         path: "{{ repo_path }}"
+         section: "{{ section_name }}"
          key: enabled
          value: "0"
-      # TODO: code needs a fix to be compatible with CentOS-7
-      when: ansible_distribution_major_version is version(8, '>=')
 
-    - name: Validate yum/dnf conf file
+    - name: Check if yum/dnf conf file was updated
+      vars:
+        conf_file_path: "{{ '/etc/dnf/dnf.conf' if (ansible_distribution_major_version is version(8, '>=')) else '/etc/yum.conf' }}"
       include_tasks: assert_ini_key_value.yml
       with_items:
-       - name: dnf.conf
-         path: /etc/dnf/dnf.conf
+       - name: global_conf
+         path: "{{ conf_file_path }}"
          section: main
          key: skip_if_unavailable
          value: "False"
-       - name: dnf.conf
-         path: /etc/dnf/dnf.conf
+       - name: global_conf
+         path: "{{ conf_file_path }}"
          section: main
-         key: keepcache
-         value: "0"
-       # TODO: code needs a fix to be compatible with CentOS-7
-      when: ansible_distribution_major_version is version(8, '>=')
+         key: fake_conf
+         value: "True"
 
     - name: Validate compose repos outputs
       include_tasks: verify_compose_repos.yml

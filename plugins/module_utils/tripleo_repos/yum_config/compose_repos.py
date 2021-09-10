@@ -18,8 +18,6 @@ import logging
 import json
 import os
 import re
-import urllib.parse
-import urllib.request
 
 from .constants import (
     YUM_REPO_DIR,
@@ -44,7 +42,8 @@ __metaclass__ = type
 class TripleOYumComposeRepoConfig(TripleOYumConfig):
     """Manages yum repo configuration files for CentOS Compose."""
 
-    def __init__(self, compose_url, release, dir_path=None, arch=None):
+    def __init__(self, compose_url, release, dir_path=None, arch=None,
+                 environment_file=None):
         conf_dir_path = dir_path or YUM_REPO_DIR
         self.arch = arch or 'x86_64'
 
@@ -80,11 +79,13 @@ class TripleOYumComposeRepoConfig(TripleOYumConfig):
         super(TripleOYumComposeRepoConfig, self).__init__(
             valid_options=YUM_REPO_SUPPORTED_OPTIONS,
             dir_path=conf_dir_path,
-            file_extension=YUM_REPO_FILE_EXTENSION)
+            file_extension=YUM_REPO_FILE_EXTENSION,
+            environment_file=environment_file)
 
     def _get_compose_info(self):
         """Retrieve compose info for a provided compose-id url."""
         # NOTE(dviroel): works for both centos 8 and 9
+        import urllib.request
         try:
             logging.debug("Retrieving compose info from url: %s",
                           self.compose_info_url)
@@ -179,7 +180,7 @@ class TripleOYumComposeRepoConfig(TripleOYumConfig):
     def add_section(self, section, add_dict, file_path):
         # Create a new file if it does not exists
         if not os.path.isfile(file_path):
-            with open(file_path, '+w'):
+            with open(file_path, 'w+'):
                 pass
         super(TripleOYumComposeRepoConfig, self).add_section(
             section, add_dict, file_path)
