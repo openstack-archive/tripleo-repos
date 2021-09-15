@@ -23,28 +23,40 @@ from .exceptions import (
     TripleOHashInvalidConfig, TripleOHashInvalidDLRNResponse
 )
 # portable http_get that uses either ansible recommended way or python native
-# urllib.
-try:
-    from ansible.module_utils.urls import open_url
+# urllib. Also deals with python2 vs python3 for centos7 train jobs.
+py_version = sys.version_info.major
+if py_version < 3:
+    import urllib2
 
     def http_get(url):
         try:
-            response = open_url(url, method='GET')
-            return (response.read(), response.status)
-        except Exception as e:
-            return (str(e), -1)
-except ImportError:
-    from urllib.request import urlopen
-
-    def http_get(url):
-        # https://stackoverflow.com/questions/35122232/urllib-request-urlopen-return-bytes-but-i-cannot-decode-it
-        try:
-            response = urlopen(url)
+            response = urllib2.urlopen(url)
             return (
                 response.read().decode('utf-8'),
-                int(response.status))
+                int(response.code))
         except Exception as e:
             return (str(e), -1)
+else:
+    try:
+        from ansible.module_utils.urls import open_url
+
+        def http_get(url):
+            try:
+                response = open_url(url, method='GET')
+                return (response.read(), response.status)
+            except Exception as e:
+                return (str(e), -1)
+    except ImportError:
+        from urllib.request import urlopen
+
+        def http_get(url):
+            try:
+                response = urlopen(url)
+                return (
+                    response.read().decode('utf-8'),
+                    int(response.status))
+            except Exception as e:
+                return (str(e), -1)
 
 __metaclass__ = type
 
