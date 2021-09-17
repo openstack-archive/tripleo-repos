@@ -12,6 +12,7 @@
         # TODO: fix yum_config to correctly report changed state and uncomment
         # the line below which disables molecule idemptotence test.
         - molecule-idempotence-notest
+      when: ansible_distribution_major_version is version(8, '>=')
 
     - name: "Check get_hash"
       tripleo.repos.get_hash:
