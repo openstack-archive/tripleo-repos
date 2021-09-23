@@ -39,3 +39,32 @@ YUM_REPO_FILE_EXTENSION = '.repo'
 Default constants for yum/dnf global configurations.
 """
 YUM_GLOBAL_CONFIG_FILE_PATH = '/etc/yum.conf'
+
+"""
+CentOS Stream compose repos defaults
+"""
+COMPOSE_REPOS_RELEASES = [
+    "centos-stream-8",
+    "centos-stream-9"
+]
+
+COMPOSE_REPOS_SUPPORTED_ARCHS = [
+    "aarch64",
+    "ppc64le",
+    "x86_64"
+]
+
+COMPOSE_REPOS_URL_PATTERN = {
+    "centos-stream-8": r"(^https:.*.centos.org/)([^/]*)(/compose/?$)",
+    "centos-stream-9": r"(^https:.*.centos.org/.*/)(.*)(/compose/?$)",
+}
+
+COMPOSE_REPOS_URL_REPLACE_STR = {
+    "centos-stream-8": r"\1%(compose_id)s\3",
+    "centos-stream-9": r"\1%(compose_id)s\3",
+}
+
+COMPOSE_REPOS_INFO_PATH = {
+    "centos-stream-8": "metadata/composeinfo.json",
+    "centos-stream-9": "metadata/composeinfo.json",
+}

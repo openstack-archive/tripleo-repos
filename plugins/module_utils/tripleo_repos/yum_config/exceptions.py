@@ -60,3 +60,10 @@ class TripleOYumConfigInvalidOption(Base):
 
     def __init__(self, error_msg):
         super(TripleOYumConfigInvalidOption, self).__init__(error_msg)
+
+
+class TripleOYumConfigComposeError(Base):
+    """An error occurred while configuring CentOS compose repos."""
+
+    def __init__(self, error_msg):
+        super(TripleOYumConfigComposeError, self).__init__(error_msg)

@@ -17,8 +17,10 @@ import argparse
 import logging
 import sys
 
-import tripleo_repos.yum_config.yum_config as cfg
+import tripleo_repos.yum_config.compose_repos as compose_repos
+import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+import tripleo_repos.yum_config.yum_config as cfg
 
 
 def options_to_dict(options):
@@ -63,8 +65,9 @@ def main():
     repo_args_parser.add_argument(
         '--config-dir-path',
         dest='config_dir_path',
+        default=const.YUM_REPO_DIR,
         help=(
-            'set the absolute directory path that holds all repo or module '
+            'set the absolute directory path that holds all repo '
             'configuration files')
     )
 
@@ -98,13 +101,61 @@ def main():
         help="sets module profile"
     )
 
+    # Compose repo arguments
+    compose_args_parser = argparse.ArgumentParser(add_help=False)
+    compose_args_parser.add_argument(
+        '--compose-url',
+        dest='compose_url',
+        required=True,
+        help='CentOS compose URL'
+    )
+    compose_args_parser.add_argument(
+        '--release',
+        dest='release',
+        choices=const.COMPOSE_REPOS_RELEASES,
+        default='centos-stream-8',
+        help='target CentOS release.'
+    )
+    compose_args_parser.add_argument(
+        '--arch',
+        choices=const.COMPOSE_REPOS_SUPPORTED_ARCHS,
+        default='x86_64',
+        help='set the architecture for the destination repos.'
+    )
+    compose_args_parser.add_argument(
+        '--disable-repos',
+        nargs='+',
+        help='list of repo names or repo absolute file paths to be disabled.'
+    )
+    compose_args_parser.add_argument(
+        '--disable-all-conflicting',
+        action='store_true',
+        dest='disable_conflicting',
+        default=False,
+        help='after enabling compose repos, disable all other repos that '
+             'match variant names.'
+    )
+    compose_args_parser.add_argument(
+        '--variants',
+        nargs='+',
+        help='Name of the repos to be enabled. Default behavior is to enable '
+             'all that match a specific release and architecture.'
+    )
+    compose_args_parser.add_argument(
+        '--config-dir-path',
+        dest='config_dir_path',
+        default=const.YUM_REPO_DIR,
+        help='set the absolute directory path that holds all repo '
+             'configuration files'
+    )
+
     # Common file path argument
     common_parse = argparse.ArgumentParser(add_help=False)
     common_parse.add_argument(
         '--config-file-path',
         dest='config_file_path',
         help=('set the absolute file path of the configuration file to be '
-              'updated')
+              'updated.')
     )
 
     # Main parser
@@ -133,6 +184,11 @@ def main():
         parents=[common_parse, options_parse],
         help='updates global yum configuration options'
     )
+    subparsers.add_parser(
+        'enable-compose-repos',
+        parents=[compose_args_parser],
+        help='enable CentOS compose repos based on an compose url.'
+    )
 
     args = main_parser.parse_args()
     if args.command is None:
@@ -146,10 +202,11 @@ def main():
     if args.command == 'repo':
         set_dict = options_to_dict(args.set_opts)
         config_obj = cfg.TripleOYumRepoConfig(
-            file_path=args.config_file_path,
             dir_path=args.config_dir_path)
 
-        config_obj.update_section(args.name, set_dict, enable=args.enable)
+        config_obj.update_section(args.name, set_dict,
+                                  file_path=args.config_file_path,
+                                  enabled=args.enable)
 
     elif args.command == 'module':
         dnf_mod_mgr = dnf_mgr.DnfModuleManager()
@@ -162,6 +219,19 @@ def main():
             file_path=args.config_file_path)
 
         config_obj.update_section('main', set_dict)
+
+    elif args.command == 'enable-compose-repos':
+        repo_obj = compose_repos.TripleOYumComposeRepoConfig(
+            args.compose_url,
+            args.release,
+            dir_path=args.config_dir_path,
+            arch=args.arch)
+
+        repo_obj.enable_compose_repos(variants=args.variants,
+                                      override_repos=args.disable_conflicting)
+        if args.disable_repos:
+            for file in args.disable_repos:
+                repo_obj.update_all_sections(file, enabled=False)
 
 
 def cli_entrypoint():

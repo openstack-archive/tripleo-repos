@@ -15,8 +15,8 @@ its repository and invoking in command line:
 
   This subcommand lets you enable or disable a repo and sets its configuration options.
   The *tripleo-yum-config* module will search for the provided repo name in all *.repo* files at REPO_DIR_PATH.
-  Optionally, you can provide a dir path where your repo files live or specify the full path of the repo file.
-  By default REPO_DIR_PATH is set to */etc/yum.repod.d/*.
+  Optionally, you can provide a path where your repo files live or specify the full path of the repo file.
+  By default REPO_DIR_PATH is set to */etc/yum.repos.d/*.
 
   Examples:
   ```
@@ -48,6 +48,19 @@ its repository and invoking in command line:
   ```
   sudo python -m tripleo_yum_config global --set-opts keepcache=1 cachedir="/var/cache/dnf"
   ```
+
+* **enable-compose-repos**
+
+  This subcommand will enable a list os yum repos based on the metadata retrieved from the `compose-url`.
+  The *tripleo-yum-config* module will create new repo files at REPO_DIR_PATH and enable them.
+  Optionally, you can provide a path where your repo files live, specify the variants that should be created and which repos need to be disabled afterwards.
+  By default REPO_DIR_PATH is set to */etc/yum.repos.d/*.
+
+  Example:
+  ```
+  sudo python -m tripleo_yum_config enable-compose-repos --compose-url https://composes.centos.org/latest-CentOS-Stream-8/compose/ --release centos-stream-8 --disable-all-conflicting
+  ```
+
 #### Install using setup.py
 
 Installation using python setup.py requires sudo, because the python source

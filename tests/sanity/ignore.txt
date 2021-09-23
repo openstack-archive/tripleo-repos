@@ -1,2 +1,3 @@
 plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py replace-urlopen
 plugins/module_utils/tripleo_repos/get_hash/tripleo_hash_info.py pylint:ansible-bad-import
+plugins/module_utils/tripleo_repos/yum_config/compose_repos.py replace-urlopen
