@@ -19,6 +19,65 @@ FAKE_OPTION1 = 'fake_option1'
 FAKE_DIR_FILES = ['fake_file1.conf', 'fake_file2.conf', 'fake.md']
 FAKE_SECTIONS = ['fake_section1', 'fake_section2']
 FAKE_SECTION1 = 'fake_section1'
+FAKE_SECTION2 = 'fake_section2'
+FAKE_SET_DICT = {
+    'key1': 'value1',
+    'key2': 'value2',
+}
+
+FAKE_COMPOSE_URL = (
+    'https://composes.centos.org/fake-CentOS-Stream/compose/')
+FAKE_REPO_PATH = '/etc/yum.repos.d/fake.repo'
+
+FAKE_COMPOSE_INFO = {
+    "header": {
+        "version": "1.2",
+    },
+    "payload": {
+        "compose": {
+            "id": "fake_compose_id",
+        },
+        "release": {
+            "name": "CentOS Stream",
+            "short": "CentOS-Stream",
+            "version": "8",
+        },
+        "variants": {
+            "AppStream": {
+                "arches": [
+                    "aarch64",
+                    "ppc64le",
+                    "x86_64"
+                ],
+                "id": "AppStream",
+                "name": "AppStream",
+                "paths": {
+                    "packages": {
+                        "aarch64": "AppStream/aarch64/os/Packages",
+                        "ppc64le": "AppStream/ppc64le/os/Packages",
+                        "x86_64": "AppStream/x86_64/os/Packages",
+                    },
+                },
+            },
+            "BaseOS": {
+                "arches": [
+                    "aarch64",
+                    "ppc64le",
+                    "x86_64",
+                ],
+                "id": "BaseOS",
+                "name": "BaseOS",
+                "paths": {
+                    "packages": {
+                        "aarch64": "BaseOS/aarch64/os/Packages",
+                        "ppc64le": "BaseOS/ppc64le/os/Packages",
+                        "x86_64": "BaseOS/x86_64/os/Packages",
+                    },
+                },
+            },
+        },
+    },
+}
 
 
 class FakeConfigParser(dict):
@@ -33,4 +92,7 @@ class FakeConfigParser(dict):
         pass
 
     def add_section(self, section):
-        pass
+        self[section] = {}
+
+    def sections(self):
+        return self.keys()

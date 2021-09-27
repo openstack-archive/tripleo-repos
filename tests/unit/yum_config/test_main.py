@@ -20,6 +20,7 @@ from unittest import mock
 from . import fakes
 from . import mock_modules  # noqa: F401
 import tripleo_repos.yum_config.__main__ as main
+import tripleo_repos.yum_config.compose_repos as repos
 import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.dnf_manager as dnf_mgr
 import tripleo_repos.yum_config.yum_config as yum_cfg
@@ -118,3 +119,33 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
             main.main()
 
         self.assertEqual(2, command.exception.code)
+
+    def test_main_enable_compose_repos(self):
+        sys.argv[1:] = [
+            'enable-compose-repos', '--compose-url', fakes.FAKE_COMPOSE_URL,
+            '--release', const.COMPOSE_REPOS_RELEASES[0],
+            '--variants', 'fake_variant',
+            '--disable-repos', fakes.FAKE_REPO_PATH,
+            '--arch', const.COMPOSE_REPOS_SUPPORTED_ARCHS[0],
+        ]
+        repos_obj = mock.Mock()
+        mock_yum_global_obj = self.mock_object(
+            repos, 'TripleOYumComposeRepoConfig',
+            mock.Mock(return_value=repos_obj))
+        mock_enable_composes = self.mock_object(
+            repos_obj, 'enable_compose_repos')
+        mock_update_all = self.mock_object(
+            repos_obj, 'update_all_sections')
+
+        main.main()
+
+        mock_yum_global_obj.assert_called_once_with(
+            fakes.FAKE_COMPOSE_URL,
+            const.COMPOSE_REPOS_RELEASES[0],
+            dir_path=const.YUM_REPO_DIR,
+            arch=const.COMPOSE_REPOS_SUPPORTED_ARCHS[0])
+        mock_enable_composes.assert_called_once_with(
+            variants=['fake_variant'], override_repos=False)
+        mock_update_all.assert_called_once_with(
+            fakes.FAKE_REPO_PATH, enabled=False
+        )

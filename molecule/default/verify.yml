@@ -1,10 +1,38 @@
 ---
-# This is an example playbook to execute Ansible tests.
-
 - name: Verify
   hosts: all
-  gather_facts: false
   tasks:
-  - name: Example assertion
-    assert:
-      that: true
+    - name: Validate if RealTime repo is disabled
+      include_tasks: assert_ini_key_value.yml
+      with_items:
+       - name: RealTime
+         path: /etc/yum.repos.d/CentOS-Stream-RealTime.repo
+         section: rt
+         key: enabled
+         value: "0"
+      # TODO: code needs a fix to be compatible with CentOS-7
+      when: ansible_distribution_major_version is version(8, '>=')
+
+    - name: Validate yum/dnf conf file
+      include_tasks: assert_ini_key_value.yml
+      with_items:
+       - name: dnf.conf
+         path: /etc/dnf/dnf.conf
+         section: main
+         key: skip_if_unavailable
+         value: "False"
+       - name: dnf.conf
+         path: /etc/dnf/dnf.conf
+         section: main
+         key: keepcache
+         value: "0"
+       # TODO: code needs a fix to be compatible with CentOS-7
+      when: ansible_distribution_major_version is version(8, '>=')
+
+    - name: Validate compose repos outputs
+      include_tasks: verify_compose_repos.yml
+      with_items:
+       - "AppStream"
+       - "BaseOS"
+      # NOTE: operation available only for CentOS >= 8
+      when: ansible_distribution_major_version is version(8, '>=')

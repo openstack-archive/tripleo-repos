@@ -172,6 +172,60 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
                           updates)
         mock_get_configs.assert_called_once_with(fakes.FAKE_SECTION1)
 
+    @mock.patch('builtins.open')
+    def test_add_section(self, open):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        config_parser = fakes.FakeConfigParser({fakes.FAKE_SECTION1: {}})
+
+        mock_read_config = self.mock_object(
+            yum_config, '_read_config_file',
+            mock.Mock(return_value=(config_parser, fakes.FAKE_FILE_PATH)))
+
+        updates = {fakes.FAKE_OPTION1: 'new_fake_value'}
+
+        yum_config.add_section(fakes.FAKE_SECTION2, updates,
+                               file_path=fakes.FAKE_FILE_PATH)
+
+        mock_read_config.assert_called_once_with(
+            file_path=fakes.FAKE_FILE_PATH)
+
+    @mock.patch('builtins.open')
+    def test_add_section_already_exists(self, open):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        config_parser = fakes.FakeConfigParser({fakes.FAKE_SECTION1: {}})
+
+        mock_read_config = self.mock_object(
+            yum_config, '_read_config_file',
+            mock.Mock(return_value=(config_parser, fakes.FAKE_FILE_PATH)))
+
+        updates = {fakes.FAKE_OPTION1: 'new_fake_value'}
+
+        self.assertRaises(exc.TripleOYumConfigInvalidSection,
+                          yum_config.add_section,
+                          fakes.FAKE_SECTION1, updates,
+                          file_path=fakes.FAKE_FILE_PATH)
+
+        mock_read_config.assert_called_once_with(
+            file_path=fakes.FAKE_FILE_PATH)
+
+    @mock.patch('builtins.open')
+    def test_add_update_all_sections(self, open):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        config_parser = fakes.FakeConfigParser({fakes.FAKE_SECTION1: {}})
+
+        mock_read_config = self.mock_object(
+            yum_config, '_read_config_file',
+            mock.Mock(return_value=(config_parser, fakes.FAKE_FILE_PATH)))
+
+        updates = {fakes.FAKE_OPTION1: 'new_fake_value'}
+
+        yum_config.update_all_sections(updates, fakes.FAKE_FILE_PATH)
+
+        mock_read_config.assert_called_once_with(fakes.FAKE_FILE_PATH)
+
 
 @ddt.ddt
 class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):

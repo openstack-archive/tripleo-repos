@@ -1,0 +1,23 @@
+---
+  - name: Get the content of {{ item.name }} repo
+    command: "cat {{ item.path }}"
+    register: file_output
+
+  - name: Print {{ item.name }} repo content
+    debug:
+      msg:
+       - "Content of {{ item.name }} repo located at '{{ item.path }}'"
+       - "{{ file_output.stdout_lines }}"
+
+  - set_fact:
+      tmp_repo_file: /tmp/{{ item.name|lower }}.temp
+
+  - name: Retrieve remote repo ini file
+    fetch:
+      src: "{{ item.path }}"
+      dest: "{{ tmp_repo_file }}"
+      flat: yes
+
+  - assert:
+      that:
+        - "{{ lookup('ini', '{{ item.key }} section={{ item.section|lower }} file={{ tmp_repo_file }}') }} == {{ item.value }}"
