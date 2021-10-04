@@ -17,10 +17,9 @@ import argparse
 import logging
 import sys
 
-import tripleo_repos.yum_config.compose_repos as compose_repos
 import tripleo_repos.yum_config.constants as const
-import tripleo_repos.yum_config.dnf_manager as dnf_mgr
 import tripleo_repos.yum_config.yum_config as cfg
+import tripleo_repos.yum_config.utils as utils
 
 
 def options_to_dict(options):
@@ -39,12 +38,27 @@ def options_to_dict(options):
 
 def main():
     cfg.TripleOYumConfig.load_logging()
+    # Get release model and version
+    distro, major_version, __ = utils.get_distro_info()
+    py_version = sys.version_info.major
+    if py_version < 3:
+        logging.warning("Some operations will be disabled when running with "
+                        "python 2.")
 
     # Repo arguments
     repo_args_parser = argparse.ArgumentParser(add_help=False)
     repo_args_parser.add_argument(
         'name',
         help='name of the repo to be modified'
+    )
+
+    environment_parse = argparse.ArgumentParser(add_help=False)
+    environment_parse.add_argument(
+        '--environment-file',
+        dest='env_file',
+        default=None,
+        help=('path to an environment file to be read before creating repo '
+              'files'),
     )
 
     parser_enable_group = repo_args_parser.add_mutually_exclusive_group()
@@ -171,24 +185,32 @@ def main():
     # Subcommands
     subparsers.add_parser(
         'repo',
-        parents=[common_parse, repo_args_parser, options_parse],
+        parents=[common_parse, environment_parse, repo_args_parser,
+                 options_parse],
         help='updates a yum repository options'
     )
     subparsers.add_parser(
-        'module',
-        parents=[dnf_module_parser],
-        help='updates yum module options'
-    )
-    subparsers.add_parser(
         'global',
-        parents=[common_parse, options_parse],
+        parents=[common_parse, environment_parse, options_parse],
         help='updates global yum configuration options'
     )
-    subparsers.add_parser(
-        'enable-compose-repos',
-        parents=[compose_args_parser],
-        help='enable CentOS compose repos based on an compose url.'
-    )
+
+    if py_version >= 3:
+        subparsers.add_parser(
+            'enable-compose-repos',
+            parents=[compose_args_parser, environment_parse],
+            help='enable CentOS compose repos based on an compose url.'
+        )
+
+        for min_distro_ver in const.DNF_MODULE_MINIMAL_DISTRO_VERSIONS:
+            if (distro == min_distro_ver.get('distro') and int(
+                    major_version) >= min_distro_ver.get('min_version')):
+                subparsers.add_parser(
+                    'module',
+                    parents=[dnf_module_parser],
+                    help='updates yum module options'
+                )
+                break
 
     args = main_parser.parse_args()
     if args.command is None:
@@ -202,13 +224,14 @@ def main():
     if args.command == 'repo':
         set_dict = options_to_dict(args.set_opts)
         config_obj = cfg.TripleOYumRepoConfig(
-            dir_path=args.config_dir_path)
-
-        config_obj.update_section(args.name, set_dict,
-                                  file_path=args.config_file_path,
-                                  enabled=args.enable)
+            dir_path=args.config_dir_path,
+            environment_file=args.env_file)
+        config_obj.add_or_update_section(args.name, set_dict=set_dict,
+                                         file_path=args.config_file_path,
+                                         enabled=args.enable)
 
     elif args.command == 'module':
+        import tripleo_repos.yum_config.dnf_manager as dnf_mgr
         dnf_mod_mgr = dnf_mgr.DnfModuleManager()
         dnf_method = getattr(dnf_mod_mgr, args.operation + "_module")
         dnf_method(args.name, stream=args.stream, profile=args.profile)
@@ -216,16 +239,19 @@ def main():
     elif args.command == 'global':
         set_dict = options_to_dict(args.set_opts)
         config_obj = cfg.TripleOYumGlobalConfig(
-            file_path=args.config_file_path)
+            file_path=args.config_file_path,
+            environment_file=args.env_file)
 
         config_obj.update_section('main', set_dict)
 
     elif args.command == 'enable-compose-repos':
+        import tripleo_repos.yum_config.compose_repos as compose_repos
         repo_obj = compose_repos.TripleOYumComposeRepoConfig(
             args.compose_url,
             args.release,
             dir_path=args.config_dir_path,
-            arch=args.arch)
+            arch=args.arch,
+            environment_file=args.env_file)
 
         repo_obj.enable_compose_repos(variants=args.variants,
                                       override_repos=args.disable_conflicting)

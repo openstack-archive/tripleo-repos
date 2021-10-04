@@ -66,6 +66,11 @@ options:
             file to be changed.
         type: path
         default: /etc/yum.repos.d
+    environment_file:
+        description:
+          - Absolute path to an environment file to be read before updating or
+            creating yum config and repo files.
+        type: path
     compose_url:
         description:
           - URL that contains CentOS compose repositories.
@@ -151,7 +156,7 @@ EXAMPLES = r'''
 - name: Configure a set of repos based on latest CentOS Stream 8 compose
   become: true
   become_user: root
-  tripleo_yup_config:
+  tripleo_yum_config:
     compose_url: https://composes.centos.org/latest-CentOS-Stream-8/compose/
     centos_release: centos-stream-8
     variants:
@@ -165,6 +170,7 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
+from ansible.module_utils import six  # noqa: E402
 from ansible.module_utils.basic import AnsibleModule  # noqa: E402
 
 
@@ -172,10 +178,13 @@ def run_module():
     try:
         import ansible_collections.tripleo.repos.plugins.module_utils. \
             tripleo_repos.yum_config.constants as const
+        import ansible_collections.tripleo.repos.plugins.module_utils. \
+            tripleo_repos.yum_config.utils as utils
     except ImportError:
         import tripleo_repos.yum_config.constants as const
-    # define available arguments/parameters a user can pass to the module
-    supported_config_types = ['repo', 'module', 'global',
+        import tripleo_repos.yum_config.utils as utils
+
+    supported_config_types = ['repo', 'global', 'module',
                               'enable-compose-repos']
     supported_module_operations = ['install', 'remove', 'reset']
     module_args = dict(
@@ -188,6 +197,7 @@ def run_module():
         set_options=dict(type='dict', default={}),
         file_path=dict(type='path'),
         dir_path=dict(type='path', default=const.YUM_REPO_DIR),
+        environment_file=dict(type='path'),
         compose_url=dict(type='str'),
         centos_release=dict(type='str',
                             choices=const.COMPOSE_REPOS_RELEASES),
@@ -199,16 +209,36 @@ def run_module():
         disable_repos=dict(type='list', default=[],
                            elements='str'),
     )
+    required_if_params = [
+        ["type", "repo", ["name"]],
+        ["type", "module", ["name"]],
+        ["type", "enable-compose-repos", ["compose_url"]]
+    ]
 
     module = AnsibleModule(
         argument_spec=module_args,
-        required_if=[
-            ["type", "repo", ["name"]],
-            ["type", "module", ["name"]],
-            ["type", "enable-compose-repos", ["compose_url"]],
-        ],
+        required_if=required_if_params,
         supports_check_mode=False
     )
+
+    operations_not_supp_in_py2 = ['module', 'enable-compose-repos']
+    if six.PY2 and module.params['type'] in operations_not_supp_in_py2:
+        msg = ("The configuration type '{0}' is not "
+               "supported with python 2.").format(module.params['type'])
+        module.fail_json(msg=msg)
+
+    distro, major_version, __ = utils.get_distro_info()
+    dnf_module_support = False
+    for min_distro_ver in const.DNF_MODULE_MINIMAL_DISTRO_VERSIONS:
+        if (distro == min_distro_ver.get('distro') and int(
+                major_version) >= min_distro_ver.get('min_version')):
+            dnf_module_support = True
+            break
+    if module.params['type'] == 'module' and not dnf_module_support:
+        msg = ("The configuration type 'module' is not "
+               "supported in this distro version "
+               "({0}-{1}).".format(distro, major_version))
+        module.fail_json(msg=msg)
 
     # 'set_options' expects a dict that can also contains a list of values.
     # List of elements will be converted to a comma-separated list
@@ -224,32 +254,40 @@ def run_module():
     try:
         try:
             import ansible_collections.tripleo.repos.plugins.module_utils.\
-                tripleo_repos.yum_config.dnf_manager as dnf_mgr
-            import ansible_collections.tripleo.repos.plugins.module_utils.\
                 tripleo_repos.yum_config.yum_config as cfg
-            import ansible_collections.tripleo.repos.plugins.module_utils. \
-                tripleo_repos.yum_config.compose_repos as repos
         except ImportError:
-            import tripleo_repos.yum_config.dnf_manager as dnf_mgr
             import tripleo_repos.yum_config.yum_config as cfg
-            import tripleo_repos.yum_config.compose_repos as repos
 
         if module.params['type'] == 'repo':
             config_obj = cfg.TripleOYumRepoConfig(
-                dir_path=module.params['dir_path'])
-            config_obj.update_section(
+                dir_path=module.params['dir_path'],
+                environment_file=module.params['environment_file'])
+            config_obj.add_or_update_section(
                 module.params['name'],
-                m_set_opts,
+                set_dict=m_set_opts,
                 file_path=module.params['file_path'],
                 enabled=module.params['enabled'])
 
+        elif module.params['type'] == 'global':
+            config_obj = cfg.TripleOYumGlobalConfig(
+                file_path=module.params['file_path'],
+                environment_file=module.params['environment_file'])
+            config_obj.update_section('main', m_set_opts)
+
         elif module.params['type'] == 'enable-compose-repos':
+            try:
+                import ansible_collections.tripleo.repos.plugins.module_utils.\
+                    tripleo_repos.yum_config.compose_repos as repos
+            except ImportError:
+                import tripleo_repos.yum_config.compose_repos as repos
+
             # 1. Create compose repo config object
             repo_obj = repos.TripleOYumComposeRepoConfig(
                 module.params['compose_url'],
                 module.params['centos_release'],
                 dir_path=module.params['dir_path'],
-                arch=module.params['arch'])
+                arch=module.params['arch'],
+                environment_file=module.params['environment_file'])
             # 2. enable CentOS compose repos
             repo_obj.enable_compose_repos(
                 variants=module.params['variants'],
@@ -259,6 +297,12 @@ def run_module():
                 repo_obj.update_all_sections(file, enabled=False)
 
         elif module.params['type'] == 'module':
+            try:
+                import ansible_collections.tripleo.repos.plugins.module_utils.\
+                    tripleo_repos.yum_config.dnf_manager as dnf_mgr
+            except ImportError:
+                import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+
             dnf_mod_mgr = dnf_mgr.DnfModuleManager()
             if module.params['enabled']:
                 dnf_mod_mgr.enable_module(module.params['name'],
@@ -274,11 +318,6 @@ def run_module():
                 dnf_method(module.params['name'],
                            stream=module.params['stream'],
                            profile=module.params['profile'])
-
-        elif module.params['type'] == 'global':
-            config_obj = cfg.TripleOYumGlobalConfig(
-                file_path=module.params['file_path'])
-            config_obj.update_section('main', m_set_opts)
 
     except Exception as exc:
         module.fail_json(msg=str(exc))

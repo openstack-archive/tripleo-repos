@@ -15,9 +15,9 @@
 from __future__ import (absolute_import, division, print_function)
 
 
-import configparser
 import logging
 import os
+import subprocess
 import sys
 
 from .constants import (
@@ -33,6 +33,54 @@ from .exceptions import (
     TripleOYumConfigNotFound,
 )
 
+py_version = sys.version_info.major
+if py_version < 3:
+    import ConfigParser as cfg_parser
+
+    def save_section_to_file(file_path, config, section, updates):
+        """Updates a specific 'section' in a 'config' and write to disk.
+
+        :param file_path: Absolute path to the file to be updated.
+        :param config: configparser object created from the file.
+        :param section: section name to be updated.
+        :param updates: dict with options to update in section.
+        """
+
+        for k, v in updates.items():
+            config.set(section, k, v)
+        with open(file_path, 'w') as f:
+            config.write(f)
+
+        # NOTE(dviroel) Need to manually remove whitespaces around "=", to
+        #  avoid legacy scripts failing on parsing ini files.
+        with open(file_path, 'r+') as f:
+            lines = f.readlines()
+            # erase content before writing again
+            f.truncate(0)
+            f.seek(0)
+            for line in lines:
+                line = line.strip()
+                if "=" in line:
+                    option_kv = line.split("=", 1)
+                    option_kv = list(map(str.strip, option_kv))
+                    f.write("%s%s%s\n" % (option_kv[0], "=", option_kv[1]))
+                else:
+                    f.write(line + "\n")
+
+else:
+    import configparser as cfg_parser
+
+    def save_section_to_file(file_path, config, section, updates):
+        """Updates a specific 'section' in a 'config' and write to disk.
+
+        :param file_path: Absolute path to the file to be updated.
+        :param config: configparser object created from the file.
+        :param section: section name to be updated.
+        :param updates: dict with options to update in section.
+        """
+        config[section].update(updates)
+        with open(file_path, 'w') as f:
+            config.write(f, space_around_delimiters=False)
 
 __metaclass__ = type
 
@@ -41,6 +89,21 @@ def validated_file_path(file_path):
     if os.path.isfile(file_path) and os.access(file_path, os.W_OK):
         return True
     return False
+
+
+def source_env_file(source_file, update=True):
+    """Source a file and get all environment variables in a dict format."""
+    p_open = subprocess.Popen(". %s; env" % source_file,
+                              stdout=subprocess.PIPE,
+                              shell=True)
+    data = p_open.communicate()[0].decode('ascii')
+
+    env_dict = dict(
+        line.split("=", 1) for line in data.splitlines()
+        if len(line.split("=", 1)) > 1)
+    if update:
+        os.environ.update(env_dict)
+    return env_dict
 
 
 class TripleOYumConfig:
@@ -79,7 +142,8 @@ class TripleOYumConfig:
                 logger.addHandler(handler)
         logger.setLevel(logging.INFO)
 
-    def __init__(self, valid_options=None, dir_path=None, file_extension=None):
+    def __init__(self, valid_options=None, dir_path=None, file_extension=None,
+                 environment_file=None):
         """
         Creates a TripleOYumConfig object that holds configuration file
         information.
@@ -90,10 +154,13 @@ class TripleOYumConfig:
             for configuration files to be updated.
         :param: file_extension: File extension to filter configuration files
             in the search directory.
+        :param environment_file: File to be read before updating environment
+            variables.
         """
         self.dir_path = dir_path
         self.file_extension = file_extension
         self.valid_options = valid_options
+        self.env_file = environment_file
 
         # Sanity checks
         if dir_path:
@@ -102,6 +169,9 @@ class TripleOYumConfig:
                        'provided path.').format(dir_path)
                 raise TripleOYumConfigNotFound(error_msg=msg)
 
+        if self.env_file:
+            source_env_file(os.path.expanduser(self.env_file), update=True)
+
     def _read_config_file(self, file_path, section=None):
         """Reads a configuration file.
 
@@ -109,7 +179,7 @@ class TripleOYumConfig:
             to fail earlier if the section is not found.
         :return: a config parser object and the full file path.
         """
-        config = configparser.ConfigParser()
+        config = cfg_parser.ConfigParser()
         file_paths = [file_path]
         if self.dir_path:
             # if dir_path is configured, we can search for filename there
@@ -127,7 +197,7 @@ class TripleOYumConfig:
 
         try:
             config.read(valid_file_path)
-        except configparser.Error:
+        except cfg_parser.Error:
             msg = 'Unable to parse configuration file {0}.'.format(
                 valid_file_path)
             raise TripleOYumConfigFileParseError(error_msg=msg)
@@ -161,10 +231,10 @@ class TripleOYumConfig:
                 if not os.access(os.path.join(self.dir_path, file), os.W_OK):
                     continue
 
-                tmp_config = configparser.ConfigParser()
+                tmp_config = cfg_parser.ConfigParser()
                 try:
                     tmp_config.read(os.path.join(self.dir_path, file))
-                except configparser.Error:
+                except cfg_parser.Error:
                     continue
                 if section in tmp_config.sections():
                     config_files_path.append(os.path.join(self.dir_path, file))
@@ -195,12 +265,12 @@ class TripleOYumConfig:
                    'section {0}'.format(section))
             raise TripleOYumConfigNotFound(error_msg=msg)
 
+        for k, v in set_dict.items():
+            set_dict[k] = os.path.expandvars(v)
         for file in files:
             config, file = self._read_config_file(file, section=section)
             # Update configuration file with dict updates
-            config[section].update(set_dict)
-            with open(file, 'w') as f:
-                config.write(f)
+            save_section_to_file(file, config, section, set_dict)
 
         logging.info("Section '%s' was successfully "
                      "updated.", section)
@@ -213,6 +283,11 @@ class TripleOYumConfig:
             new section.
         :param file_path: Path to the configuration file to be updated.
         """
+        if self.valid_options:
+            if not all(key in self.valid_options for key in add_dict.keys()):
+                msg = 'One or more provided options are not valid.'
+                raise TripleOYumConfigInvalidOption(error_msg=msg)
+
         # This section shouldn't exist in the provided file
         config, file_path = self._read_config_file(file_path=file_path)
         if section in config.sections():
@@ -220,13 +295,12 @@ class TripleOYumConfig:
                    "file.", section)
             raise TripleOYumConfigInvalidSection(error_msg=msg)
 
+        for k, v in add_dict.items():
+            add_dict[k] = os.path.expandvars(v)
         # Add new section
         config.add_section(section)
         # Update configuration file with dict updates
-        config[section].update(add_dict)
-
-        with open(file_path, '+w') as file:
-            config.write(file)
+        save_section_to_file(file_path, config, section, add_dict)
 
         logging.info("Section '%s' was successfully "
                      "added.", section)
@@ -245,10 +319,7 @@ class TripleOYumConfig:
 
         config, file_path = self._read_config_file(file_path)
         for section in config.sections():
-            config[section].update(set_dict)
-
-        with open(file_path, '+w') as file:
-            config.write(file)
+            save_section_to_file(file_path, config, section, set_dict)
 
         logging.info("All sections for '%s' were successfully "
                      "updated.", file_path)
@@ -257,13 +328,14 @@ class TripleOYumConfig:
 class TripleOYumRepoConfig(TripleOYumConfig):
     """Manages yum repo configuration files."""
 
-    def __init__(self, dir_path=None):
+    def __init__(self, dir_path=None, environment_file=None):
         conf_dir_path = dir_path or YUM_REPO_DIR
 
         super(TripleOYumRepoConfig, self).__init__(
             valid_options=YUM_REPO_SUPPORTED_OPTIONS,
             dir_path=conf_dir_path,
-            file_extension=YUM_REPO_FILE_EXTENSION)
+            file_extension=YUM_REPO_FILE_EXTENSION,
+            environment_file=environment_file)
 
     def update_section(
             self, section, set_dict=None, file_path=None, enabled=None):
@@ -274,11 +346,36 @@ class TripleOYumRepoConfig(TripleOYumConfig):
             super(TripleOYumRepoConfig, self).update_section(
                 section, update_dict, file_path=file_path)
 
+    def add_section(self, section, add_dict, file_path, enabled=None):
+        update_dict = add_dict or {}
+        if enabled is not None:
+            update_dict['enabled'] = '1' if enabled else '0'
+        super(TripleOYumRepoConfig, self).add_section(
+            section, update_dict, file_path)
+
+    def add_or_update_section(self, section, set_dict=None, file_path=None,
+                              enabled=None, create_if_not_exists=True):
+        try:
+            self.update_section(
+                section, set_dict=set_dict, file_path=file_path,
+                enabled=enabled)
+        except TripleOYumConfigNotFound:
+            if not create_if_not_exists or file_path is None:
+                # there is nothing to do, we can't create a new config file
+                raise
+            # Create a new file if it does not exists
+            with open(file_path, 'w+'):
+                pass
+            # When creating a new repo file, make sure that it has a name
+            if 'name' not in set_dict.keys():
+                set_dict['name'] = section
+            self.add_section(section, set_dict, file_path, enabled=enabled)
+
 
 class TripleOYumGlobalConfig(TripleOYumConfig):
     """Manages yum global configuration file."""
 
-    def __init__(self, file_path=None):
+    def __init__(self, file_path=None, environment_file=None):
         self.conf_file_path = file_path or YUM_GLOBAL_CONFIG_FILE_PATH
         logging.info("Using '%s' as yum global configuration "
                      "file.", self.conf_file_path)
@@ -290,13 +387,14 @@ class TripleOYumGlobalConfig(TripleOYumConfig):
             # create it. If the user specify another conf file that doesn't
             # exists, the operation will fail.
             if not os.path.isfile(self.conf_file_path):
-                config = configparser.ConfigParser()
+                config = cfg_parser.ConfigParser()
                 config.read(self.conf_file_path)
                 config.add_section('main')
-                with open(self.conf_file_path, '+w') as file:
+                with open(self.conf_file_path, 'w+') as file:
                     config.write(file)
 
-        super(TripleOYumGlobalConfig, self).__init__()
+        super(TripleOYumGlobalConfig, self).__init__(
+            environment_file=environment_file)
 
     def update_section(self, section, set_dict, file_path=None):
         super(TripleOYumGlobalConfig, self).update_section(

@@ -28,6 +28,7 @@ FAKE_SET_DICT = {
 FAKE_COMPOSE_URL = (
     'https://composes.centos.org/fake-CentOS-Stream/compose/')
 FAKE_REPO_PATH = '/etc/yum.repos.d/fake.repo'
+FAKE_RELEASE_NAME = 'fake_release'
 
 FAKE_COMPOSE_INFO = {
     "header": {
@@ -79,13 +80,26 @@ FAKE_COMPOSE_INFO = {
     },
 }
 
+FAKE_ENV_OUTPUT = """
+LANG=C.utf8
+HOSTNAME=4cb7d7db1907
+which_declare=declare -f
+container=oci
+PWD=/
+HOME=/root
+TERM=xterm
+SHLVL=1
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+_=/usr/bin/env
+"""
+
 
 class FakeConfigParser(dict):
     def __init__(self, *args, **kwargs):
         super(FakeConfigParser, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def write(self, file):
+    def write(self, file, space_around_delimiters=False):
         pass
 
     def read(self, file):

@@ -16,6 +16,7 @@ import configparser
 import copy
 import ddt
 import os
+import subprocess
 from unittest import mock
 
 from . import fakes
@@ -226,17 +227,44 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
 
         mock_read_config.assert_called_once_with(fakes.FAKE_FILE_PATH)
 
+    def test_source_env_file(self):
+        p_open_mock = mock.Mock()
+        mock_open = self.mock_object(subprocess, 'Popen',
+                                     mock.Mock(return_value=p_open_mock))
+        data_mock = mock.Mock()
+        self.mock_object(data_mock, 'decode',
+                         mock.Mock(return_value=fakes.FAKE_ENV_OUTPUT))
+        self.mock_object(p_open_mock, 'communicate',
+                         mock.Mock(return_value=[data_mock]))
+        env_update_mock = self.mock_object(os.environ, 'update')
+
+        yum_cfg.source_env_file('fake_source_file', update=True)
+
+        exp_env_dict = dict(
+            line.split("=", 1) for line in fakes.FAKE_ENV_OUTPUT.splitlines()
+            if len(line.split("=", 1)) > 1)
+
+        mock_open.assert_called_once_with(". fake_source_file; env",
+                                          stdout=subprocess.PIPE,
+                                          shell=True)
+        env_update_mock.assert_called_once_with(exp_env_dict)
+
 
 @ddt.ddt
 class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
     """Tests for TripleOYumRepoConfig class and its methods."""
+
+    def setUp(self):
+        super(TestTripleOYumRepoConfig, self).setUp()
+        self.config_obj = yum_cfg.TripleOYumRepoConfig(
+            dir_path='/tmp'
+        )
 
     @ddt.data(True, False, None)
     def test_yum_repo_config_update_section(self, enable):
         self.mock_object(os.path, 'isfile')
         self.mock_object(os, 'access')
         self.mock_object(os.path, 'isdir')
-        cfg_obj = yum_cfg.TripleOYumRepoConfig()
 
         mock_update = self.mock_object(yum_cfg.TripleOYumConfig,
                                        'update_section')
@@ -246,12 +274,77 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
         if enable is not None:
             expected_updates['enabled'] = '1' if enable else '0'
 
-        cfg_obj.update_section(fakes.FAKE_SECTION1, set_dict=updates,
-                               file_path=fakes.FAKE_FILE_PATH, enabled=enable)
+        self.config_obj.update_section(
+            fakes.FAKE_SECTION1, set_dict=updates,
+            file_path=fakes.FAKE_FILE_PATH, enabled=enable)
 
         mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
                                             expected_updates,
                                             file_path=fakes.FAKE_FILE_PATH)
+
+    @mock.patch('builtins.open')
+    def test_add_or_update_section(self, open):
+        mock_update = self.mock_object(
+            self.config_obj, 'update_section',
+            mock.Mock(side_effect=exc.TripleOYumConfigNotFound(
+                error_msg='error')))
+        mock_add_section = self.mock_object(self.config_obj, 'add_section')
+
+        self.config_obj.add_or_update_section(
+            fakes.FAKE_SECTION1,
+            set_dict=fakes.FAKE_SET_DICT,
+            file_path=fakes.FAKE_FILE_PATH,
+            enabled=True,
+            create_if_not_exists=True)
+
+        mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
+                                            set_dict=fakes.FAKE_SET_DICT,
+                                            file_path=fakes.FAKE_FILE_PATH,
+                                            enabled=True)
+        fake_set_dict = copy.deepcopy(fakes.FAKE_SET_DICT)
+        fake_set_dict['name'] = fakes.FAKE_SECTION1
+        mock_add_section.assert_called_once_with(
+            fakes.FAKE_SECTION1,
+            fake_set_dict,
+            fakes.FAKE_FILE_PATH,
+            enabled=True)
+
+    @ddt.data((fakes.FAKE_FILE_PATH, False), (None, True))
+    @ddt.unpack
+    def test_add_or_update_section_file_not_found(self, fake_path,
+                                                  create_if_not_exists):
+        mock_update = self.mock_object(
+            self.config_obj, 'update_section',
+            mock.Mock(side_effect=exc.TripleOYumConfigNotFound(
+                error_msg='error')))
+
+        self.assertRaises(
+            exc.TripleOYumConfigNotFound,
+            self.config_obj.add_or_update_section,
+            fakes.FAKE_SECTION1,
+            set_dict=fakes.FAKE_SET_DICT,
+            file_path=fake_path,
+            enabled=True,
+            create_if_not_exists=create_if_not_exists)
+
+        mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
+                                            set_dict=fakes.FAKE_SET_DICT,
+                                            file_path=fake_path,
+                                            enabled=True)
+
+    @ddt.data(None, False, True)
+    def test_add_section(self, enabled):
+        mock_add = self.mock_object(yum_cfg.TripleOYumConfig, 'add_section')
+
+        self.config_obj.add_section(
+            fakes.FAKE_SECTION1, fakes.FAKE_SET_DICT,
+            fakes.FAKE_FILE_PATH, enabled=enabled)
+
+        updated_dict = copy.deepcopy(fakes.FAKE_SET_DICT)
+        if enabled is not None:
+            updated_dict['enabled'] = '1' if enabled else '0'
+        mock_add.assert_called_once_with(fakes.FAKE_SECTION1, updated_dict,
+                                         fakes.FAKE_FILE_PATH)
 
 
 @ddt.ddt

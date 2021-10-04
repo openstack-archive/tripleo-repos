@@ -23,6 +23,7 @@ import tripleo_repos.yum_config.__main__ as main
 import tripleo_repos.yum_config.compose_repos as repos
 import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.dnf_manager as dnf_mgr
+import tripleo_repos.yum_config.utils as utils
 import tripleo_repos.yum_config.yum_config as yum_cfg
 
 
@@ -44,13 +45,19 @@ class TestTripleoYumConfigBase(unittest.TestCase):
 @ddt.ddt
 class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
     """Test class for main method operations."""
+    def setUp(self):
+        super(TestTripleoYumConfigMain, self).setUp()
+        self.mock_object(utils, 'get_distro_info',
+                         mock.Mock(return_value=("centos", "8", None)))
 
     def test_main_repo(self):
         sys.argv[1:] = ['repo', 'fake_repo', '--enable',
                         '--set-opts', 'key1=value1', 'key2=value2',
                         '--config-file-path', fakes.FAKE_FILE_PATH]
+
         yum_repo_obj = mock.Mock()
-        mock_update_section = self.mock_object(yum_repo_obj, 'update_section')
+        mock_update_section = self.mock_object(yum_repo_obj,
+                                               'add_or_update_section')
         mock_yum_repo_obj = self.mock_object(
             yum_cfg, 'TripleOYumRepoConfig',
             mock.Mock(return_value=yum_repo_obj))
@@ -58,10 +65,11 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
         main.main()
         expected_dict = {'key1': 'value1', 'key2': 'value2'}
 
-        mock_yum_repo_obj.assert_called_once_with(dir_path=const.YUM_REPO_DIR)
+        mock_yum_repo_obj.assert_called_once_with(dir_path=const.YUM_REPO_DIR,
+                                                  environment_file=None)
         mock_update_section.assert_called_once_with(
-            'fake_repo', expected_dict, file_path=fakes.FAKE_FILE_PATH,
-            enabled=True)
+            'fake_repo', set_dict=expected_dict,
+            file_path=fakes.FAKE_FILE_PATH, enabled=True)
 
     @ddt.data('enable', 'disable', 'reset', 'install', 'remove')
     def test_main_module(self, operation):
@@ -92,7 +100,8 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
         main.main()
         expected_dict = {'key1': 'value1', 'key2': 'value2'}
 
-        mock_yum_global_obj.assert_called_once_with(file_path=None)
+        mock_yum_global_obj.assert_called_once_with(file_path=None,
+                                                    environment_file=None)
         mock_update_section.assert_called_once_with('main', expected_dict)
 
     def test_main_no_command(self):
@@ -143,9 +152,20 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
             fakes.FAKE_COMPOSE_URL,
             const.COMPOSE_REPOS_RELEASES[0],
             dir_path=const.YUM_REPO_DIR,
-            arch=const.COMPOSE_REPOS_SUPPORTED_ARCHS[0])
+            arch=const.COMPOSE_REPOS_SUPPORTED_ARCHS[0],
+            environment_file=None)
         mock_enable_composes.assert_called_once_with(
             variants=['fake_variant'], override_repos=False)
         mock_update_all.assert_called_once_with(
             fakes.FAKE_REPO_PATH, enabled=False
         )
+
+    def test_main_invalid_release_for_dnf_module(self):
+        self.mock_object(utils, 'get_distro_info',
+                         mock.Mock(return_value=("centos", "7", None)))
+        sys.argv[1:] = ['module', 'enable', 'fake_module']
+
+        with self.assertRaises(SystemExit) as command:
+            main.main()
+
+        self.assertEqual(2, command.exception.code)
