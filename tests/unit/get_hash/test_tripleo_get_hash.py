@@ -123,6 +123,35 @@ class TestGetHash(unittest.TestCase):
         sys.argv[1:] = args
         self.assertRaises(exc.TripleOHashInvalidParameter, lambda: tgh.main())
 
+    def test_valid_os_version(self, mock_config):
+        config_file = open("fake_config_file")  # open is mocked at class level
+        config_yaml = yaml.safe_load(config_file.read())
+        config_file.close()
+        # interate for each supported os_version
+        for os_v in config_yaml['os_versions']:
+            if '7' in os_v:
+                mocked = MagicMock(
+                    return_value=(test_fakes.TEST_COMMIT_YAML_CENTOS_7, 200))
+                expected_url = (
+                    "https://trunk.rdoproject.org/{}-master/"
+                    "current-tripleo/commit.yaml".format(os_v)
+                )
+            else:
+                mocked = MagicMock(
+                    return_value=(test_fakes.TEST_REPO_MD5, 200))
+                expected_url = (
+                    "https://trunk.rdoproject.org/{}-master/"
+                    "current-tripleo/delorean.repo.md5".format(os_v)
+                )
+            with patch(
+                    'tripleo_repos.get_hash.tripleo_hash_info.http_get',
+                    mocked):
+                args = ['--os-version', "{}".format(os_v)]
+                sys.argv[1:] = args
+                main_res = tgh.main()
+                self.assertEqual(main_res.dlrn_url, expected_url)
+                self.assertEqual("{}".format(os_v), main_res.os_version)
+
     def test_invalid_os_version(self, mock_config):
         args = ['--os-version', 'rhelos99', '--component', 'tripleo']
         sys.argv[1:] = args

@@ -80,6 +80,8 @@ DEFAULT_CONFIG = {
     "os_versions": [
         "centos7",
         "centos8",
-        "rhel8"
+        "centos9",
+        "rhel8",
+        "rhel9"
     ]
 }
