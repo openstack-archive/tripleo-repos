@@ -22,17 +22,22 @@ try it out of the box without installation invoking it as a module:
 
 #### Install using setup.py
 
-Installation using python setup.py requires sudo, because the python source
-is installed at /usr/local/lib/python.
+It is recommended to perform a user/local installation using python setup.py
+to avoid the use of sudo. However you may need to set your PYTHONPATH depending
+on where the python code is installed on your system.
 
 ```
-sudo python setup.py install
+python setup.py install --user
+tripleo-get-hash --help
 ```
 The tripleo-get-hash utility uses a yaml configuration file named 'config.yaml'.
-If you install this utility using setup.py as above, the configuration file
-is placed in /usr/local/etc:
+If you install this utility using --user as above, the configuration file
+is placed in $HOME/.local/etc/tripleo_get_hash/config.yaml (on fedora).
+If this cannot be found then the config is used directly from the source directory.
+When you invoke tripleo-get-hash it will tell you which config is in use:
 ```
-     /usr/local/etc/tripleo_get_hash/config.yaml
+$ tripleo-get-hash
+2021-10-15 16:22:23,724 - tripleo-get-hash - INFO - Using config file at /home/username/.local/etc/tripleo_get_hash/config.yaml
 ```
 
 #### Install using pip
