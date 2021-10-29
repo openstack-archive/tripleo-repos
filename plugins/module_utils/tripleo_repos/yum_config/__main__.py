@@ -17,6 +17,7 @@ import argparse
 import logging
 import sys
 
+from tripleo_repos.utils import load_logging
 import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.yum_config as cfg
 import tripleo_repos.yum_config.utils as utils
@@ -37,7 +38,7 @@ def options_to_dict(options):
 
 
 def main():
-    cfg.TripleOYumConfig.load_logging()
+    load_logging()
     # Get release model and version
     distro, major_version, __ = utils.get_distro_info()
     py_version = sys.version_info.major

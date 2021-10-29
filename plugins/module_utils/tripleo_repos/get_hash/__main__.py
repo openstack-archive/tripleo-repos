@@ -17,6 +17,7 @@
 import argparse
 import logging
 import sys
+from tripleo_repos.utils import load_logging
 from tripleo_repos.get_hash.tripleo_hash_info import TripleOHashInfo
 import tripleo_repos.get_hash.exceptions as exc
 
@@ -31,7 +32,7 @@ def _validate_args(parsed_args):
 
 
 def main():
-    TripleOHashInfo.load_logging()
+    load_logging()
     config = TripleOHashInfo.load_config()
     parser = argparse.ArgumentParser(description='tripleo-get-hash.py')
     parser.add_argument(

@@ -114,34 +114,6 @@ class TripleOYumConfig:
     provided to the class constructor.
     """
 
-    @classmethod
-    def load_logging(cls):
-        """
-        This is a class method since we call it from the CLI entrypoint
-        before any object is created. Default is to add logging.INFO level
-        logging.
-        """
-        logger = logging.getLogger()
-        # Only add logger once to avoid duplicated streams in tests
-        if not logger.handlers:
-            stdout_handlers = [
-                _handler
-                for _handler in logger.handlers
-                if (hasattr(_handler, 'stream') and 'stdout'
-                    in _handler.stream.name)
-            ]
-            if not stdout_handlers:
-                formatter = logging.Formatter(
-                    (
-                        "%(asctime)s - tripleo-yum-config - %(levelname)s - "
-                        "%(message)s"
-                    )
-                )
-                handler = logging.StreamHandler(sys.stdout)
-                handler.setFormatter(formatter)
-                logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-
     def __init__(self, valid_options=None, dir_path=None, file_extension=None,
                  environment_file=None):
         """

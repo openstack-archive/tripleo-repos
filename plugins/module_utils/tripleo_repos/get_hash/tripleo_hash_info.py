@@ -16,47 +16,17 @@
 from __future__ import (absolute_import, division, print_function)
 
 import logging
-import sys
 import os
 from .constants import CONFIG_PATH, CONFIG_KEYS, DEFAULT_CONFIG
 from .exceptions import (
     TripleOHashInvalidConfig, TripleOHashInvalidDLRNResponse
 )
-# portable http_get that uses either ansible recommended way or python native
-# urllib. Also deals with python2 vs python3 for centos7 train jobs.
-py_version = sys.version_info.major
-if py_version < 3:
-    import urllib2
+try:
+    from tripleo_repos.utils import http_get
+except ImportError:
+    from ansible_collections.tripleo.repos.plugins.module_utils. \
+        tripleo_repos.utils import http_get
 
-    def http_get(url):
-        try:
-            response = urllib2.urlopen(url)
-            return (
-                response.read().decode('utf-8'),
-                int(response.code))
-        except Exception as e:
-            return (str(e), -1)
-else:
-    try:
-        from ansible.module_utils.urls import open_url
-
-        def http_get(url):
-            try:
-                response = open_url(url, method='GET')
-                return (response.read(), response.status)
-            except Exception as e:
-                return (str(e), -1)
-    except ImportError:
-        from urllib.request import urlopen
-
-        def http_get(url):
-            try:
-                response = urlopen(url)
-                return (
-                    response.read().decode('utf-8'),
-                    int(response.status))
-            except Exception as e:
-                return (str(e), -1)
 
 __metaclass__ = type
 
@@ -76,37 +46,6 @@ class TripleOHashInfo:
     def load_yaml(cls, filename):
         import yaml
         return yaml.safe_load(filename)
-
-    @classmethod
-    def load_logging(cls):
-        """
-        This is a class method since we call it from the CLI entrypoint
-        before the TripleOHashInfo object is created. Default is to add
-        logging.INFO level logging.
-        """
-        logger = logging.getLogger()
-        # Only add logger once to avoid duplicated streams in tests
-        if not logger.handlers:
-            stdout_handlers = [
-                _handler
-                for _handler in logger.handlers
-                if
-                (
-                    hasattr(_handler, 'stream') and 'stdout' in
-                    _handler.stream.name
-                )
-            ]
-            if stdout_handlers == []:
-                formatter = logging.Formatter(
-                    (
-                        "%(asctime)s - tripleo-get-hash - %(levelname)s - "
-                        "%(message)s"
-                    )
-                )
-                handler = logging.StreamHandler(sys.stdout)
-                handler.setFormatter(formatter)
-                logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
 
     @classmethod
     def _resolve_local_config_path(cls):
