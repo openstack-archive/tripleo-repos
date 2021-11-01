@@ -24,6 +24,7 @@ from . import test_main
 import tripleo_repos.yum_config.constants as const
 import tripleo_repos.yum_config.exceptions as exc
 import tripleo_repos.yum_config.yum_config as yum_cfg
+import tripleo_repos.utils as repos_utils
 
 
 @ddt.ddt
@@ -249,6 +250,48 @@ class TestTripleOYumConfig(test_main.TestTripleoYumConfigBase):
                                           shell=True)
         env_update_mock.assert_called_once_with(exp_env_dict)
 
+    def test_get_config_from_url_invalid_url(self):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        fake_context = mock.Mock()
+        self.mock_object(repos_utils, 'http_get',
+                         mock.Mock(return_value=(fake_context, 404)))
+
+        self.assertRaises(exc.TripleOYumConfigUrlError,
+                          yum_config.get_config_from_url,
+                          fakes.FAKE_REPO_DOWN_URL)
+
+    def test_get_config_from_url(self):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        fake_context = mock.Mock()
+        self.mock_object(repos_utils, 'http_get',
+                         mock.Mock(return_value=(fake_context, 200)))
+        parser_mock = mock.Mock()
+        self.mock_object(configparser, 'ConfigParser',
+                         mock.Mock(return_value=parser_mock))
+
+        result = yum_config.get_config_from_url(fakes.FAKE_REPO_DOWN_URL)
+
+        self.assertEqual(parser_mock, result)
+
+    def test_get_options_from_url_section_not_found(self):
+        yum_config = self._create_yum_config_obj(
+            valid_options=fakes.FAKE_SUPP_OPTIONS)
+        fake_config = mock.Mock()
+        self.mock_object(fake_config, 'sections',
+                         mock.Mock(return_value=[]))
+        mock_get_from_url = self.mock_object(
+            yum_config, 'get_config_from_url',
+            mock.Mock(return_value=fake_config))
+
+        self.assertRaises(exc.TripleOYumConfigInvalidSection,
+                          yum_config.get_options_from_url,
+                          fakes.FAKE_REPO_DOWN_URL,
+                          fakes.FAKE_SECTION1)
+
+        mock_get_from_url.assert_called_once_with(fakes.FAKE_REPO_DOWN_URL)
+
 
 @ddt.ddt
 class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
@@ -283,26 +326,37 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
                                             file_path=fakes.FAKE_FILE_PATH)
 
     @mock.patch('builtins.open')
-    def test_add_or_update_section(self, open):
+    @ddt.data(None, fakes.FAKE_REPO_DOWN_URL)
+    def test_add_or_update_section(self, open, down_url):
         mock_update = self.mock_object(
             self.config_obj, 'update_section',
             mock.Mock(side_effect=exc.TripleOYumConfigNotFound(
                 error_msg='error')))
         mock_add_section = self.mock_object(self.config_obj, 'add_section')
+        extra_opt = {'key1': 'new value 1'}
+        mock_get_from_url = self.mock_object(
+            self.config_obj, 'get_options_from_url',
+            mock.Mock(return_value=extra_opt))
 
         self.config_obj.add_or_update_section(
             fakes.FAKE_SECTION1,
             set_dict=fakes.FAKE_SET_DICT,
             file_path=fakes.FAKE_FILE_PATH,
             enabled=True,
-            create_if_not_exists=True)
+            create_if_not_exists=True,
+            from_url=down_url)
 
-        mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
-                                            set_dict=fakes.FAKE_SET_DICT,
-                                            file_path=fakes.FAKE_FILE_PATH,
-                                            enabled=True)
         fake_set_dict = copy.deepcopy(fakes.FAKE_SET_DICT)
         fake_set_dict['name'] = fakes.FAKE_SECTION1
+        if down_url:
+            fake_set_dict.update(extra_opt)
+            mock_get_from_url.assert_called_once_with(down_url,
+                                                      fakes.FAKE_SECTION1)
+
+        mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
+                                            set_dict=fake_set_dict,
+                                            file_path=fakes.FAKE_FILE_PATH,
+                                            enabled=True)
         mock_add_section.assert_called_once_with(
             fakes.FAKE_SECTION1,
             fake_set_dict,
@@ -327,8 +381,10 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
             enabled=True,
             create_if_not_exists=create_if_not_exists)
 
+        fake_set_dict = copy.deepcopy(fakes.FAKE_SET_DICT)
+        fake_set_dict['name'] = fakes.FAKE_SECTION1
         mock_update.assert_called_once_with(fakes.FAKE_SECTION1,
-                                            set_dict=fakes.FAKE_SET_DICT,
+                                            set_dict=fake_set_dict,
                                             file_path=fake_path,
                                             enabled=True)
 
@@ -345,6 +401,39 @@ class TestTripleOYumRepoConfig(test_main.TestTripleoYumConfigBase):
             updated_dict['enabled'] = '1' if enabled else '0'
         mock_add.assert_called_once_with(fakes.FAKE_SECTION1, updated_dict,
                                          fakes.FAKE_FILE_PATH)
+
+    @ddt.data(fakes.FAKE_FILE_PATH, None)
+    def test_add_or_update_all_sections_from_url(self, file_path):
+        add_or_update_section = self.mock_object(
+            self.config_obj, 'add_or_update_section')
+        fake_config = mock.Mock()
+        self.mock_object(fake_config, 'sections',
+                         mock.Mock(return_value=[fakes.FAKE_SECTION1]))
+        options_from_url = {'key3': 'value3'}
+        self.mock_object(fake_config, 'items',
+                         mock.Mock(return_value=options_from_url))
+        mock_get_from_url = self.mock_object(
+            self.config_obj, 'get_config_from_url',
+            mock.Mock(return_value=fake_config))
+        exp_file_path = (
+            file_path or os.path.join(
+                '/tmp', fakes.FAKE_REPO_DOWN_URL.split('/')[-1])
+        )
+
+        self.config_obj.add_or_update_all_sections_from_url(
+            fakes.FAKE_REPO_DOWN_URL,
+            file_path=file_path,
+            set_dict=fakes.FAKE_SET_DICT,
+            enabled=True,
+            create_if_not_exists=True)
+
+        mock_get_from_url.assert_called_once_with(fakes.FAKE_REPO_DOWN_URL)
+        expected_update_dict = copy.deepcopy(fakes.FAKE_SET_DICT)
+        expected_update_dict.update(options_from_url)
+        add_or_update_section.assert_called_once_with(
+            fakes.FAKE_SECTION1, set_dict=expected_update_dict,
+            file_path=exp_file_path, enabled=True,
+            create_if_not_exists=True)
 
 
 @ddt.ddt

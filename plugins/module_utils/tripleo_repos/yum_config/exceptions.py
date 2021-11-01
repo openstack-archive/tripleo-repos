@@ -67,3 +67,10 @@ class TripleOYumConfigComposeError(Base):
 
     def __init__(self, error_msg):
         super(TripleOYumConfigComposeError, self).__init__(error_msg)
+
+
+class TripleOYumConfigUrlError(Base):
+    """An error occurred while fetching repo from the url."""
+
+    def __init__(self, error_msg):
+        super(TripleOYumConfigUrlError, self).__init__(error_msg)

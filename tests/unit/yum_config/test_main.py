@@ -51,9 +51,10 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
                          mock.Mock(return_value=("centos", "8", None)))
 
     def test_main_repo(self):
-        sys.argv[1:] = ['repo', 'fake_repo', '--enable',
+        sys.argv[1:] = ['repo', '--name', 'fake_repo', '--enable',
                         '--set-opts', 'key1=value1', 'key2=value2',
-                        '--config-file-path', fakes.FAKE_FILE_PATH]
+                        '--config-file-path', fakes.FAKE_FILE_PATH,
+                        '--down-url', fakes.FAKE_REPO_DOWN_URL]
 
         yum_repo_obj = mock.Mock()
         mock_update_section = self.mock_object(yum_repo_obj,
@@ -69,7 +70,30 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
                                                   environment_file=None)
         mock_update_section.assert_called_once_with(
             'fake_repo', set_dict=expected_dict,
-            file_path=fakes.FAKE_FILE_PATH, enabled=True)
+            file_path=fakes.FAKE_FILE_PATH, enabled=True,
+            from_url=fakes.FAKE_REPO_DOWN_URL)
+
+    def test_main_repo_from_url(self):
+        sys.argv[1:] = ['repo', '--enable',
+                        '--set-opts', 'key1=value1', 'key2=value2',
+                        '--config-file-path', fakes.FAKE_FILE_PATH,
+                        '--down-url', fakes.FAKE_REPO_DOWN_URL]
+
+        yum_repo_obj = mock.Mock()
+        mock_update_all_sections = self.mock_object(
+            yum_repo_obj, 'add_or_update_all_sections_from_url')
+        mock_yum_repo_obj = self.mock_object(
+            yum_cfg, 'TripleOYumRepoConfig',
+            mock.Mock(return_value=yum_repo_obj))
+
+        main.main()
+        expected_dict = {'key1': 'value1', 'key2': 'value2'}
+
+        mock_yum_repo_obj.assert_called_once_with(dir_path=const.YUM_REPO_DIR,
+                                                  environment_file=None)
+        mock_update_all_sections.assert_called_once_with(
+            fakes.FAKE_REPO_DOWN_URL, file_path=fakes.FAKE_FILE_PATH,
+            set_dict=expected_dict, enabled=True)
 
     @ddt.data('enable', 'disable', 'reset', 'install', 'remove')
     def test_main_module(self, operation):
@@ -113,7 +137,19 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
 
     @ddt.data('repo')
     def test_main_repo_mod_without_name(self, command):
-        sys.argv[1:] = [command, '--set-opts', 'key1=value1']
+        sys.argv[1:] = [command, '--set-opts', 'key1=value1',
+                        '--config-dir-path', '/tmp']
+
+        with self.assertRaises(SystemExit) as command:
+            main.main()
+
+        self.assertEqual(2, command.exception.code)
+
+    def test_main_repo_without_name_and_url(self):
+        sys.argv[1:] = ['repo', '--enable',
+                        '--set-opts', 'key1=value1', 'key2=value2',
+                        '--config-file-path', fakes.FAKE_FILE_PATH,
+                        '--config-dir-path', '/tmp']
 
         with self.assertRaises(SystemExit) as command:
             main.main()

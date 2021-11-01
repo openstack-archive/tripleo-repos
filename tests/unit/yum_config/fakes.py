@@ -24,6 +24,7 @@ FAKE_SET_DICT = {
     'key1': 'value1',
     'key2': 'value2',
 }
+FAKE_REPO_DOWN_URL = '/fake/down/url/fake.repo'
 
 FAKE_COMPOSE_URL = (
     'https://composes.centos.org/fake-CentOS-Stream/compose/')

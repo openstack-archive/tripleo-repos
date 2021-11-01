@@ -28,7 +28,8 @@ options:
     name:
         description:
           - Name of the repo or module to be changed. This options is
-            mandatory only for repo and module types.
+            mandatory only for 'repo' when no 'down_url' is provided. This
+            options is always mandatory for 'module' type.
         type: str
     enabled:
         description:
@@ -36,6 +37,13 @@ options:
           - This options is ignored for yum global configuration.
         type: bool
         default: true
+    down_url:
+        description:
+          - URL of a downloadable repo file to be used as base to construct a
+            new repo file. When used together with 'name', will update only the
+            requested section, without a specific section 'name' will add or
+            update all sections available in the downloaded file.
+        type: str
     operation:
         description:
           - Operation to be execute within a dnf module.
@@ -178,11 +186,11 @@ def run_module():
     try:
         import ansible_collections.tripleo.repos.plugins.module_utils. \
             tripleo_repos.yum_config.constants as const
-        import ansible_collections.tripleo.repos.plugins.module_utils. \
-            tripleo_repos.yum_config.utils as utils
+        from ansible_collections.tripleo.repos.plugins.module_utils. \
+            tripleo_repos.yum_config import utils
     except ImportError:
         import tripleo_repos.yum_config.constants as const
-        import tripleo_repos.yum_config.utils as utils
+        from tripleo_repos.yum_config import utils
 
     supported_config_types = ['repo', 'global', 'module',
                               'enable-compose-repos']
@@ -191,6 +199,7 @@ def run_module():
         type=dict(type='str', required=True, choices=supported_config_types),
         name=dict(type='str'),
         enabled=dict(type='bool', default=True),
+        down_url=dict(type='str'),
         operation=dict(type='str', choices=supported_module_operations),
         stream=dict(type='str'),
         profile=dict(type='str'),
@@ -210,7 +219,6 @@ def run_module():
                            elements='str'),
     )
     required_if_params = [
-        ["type", "repo", ["name"]],
         ["type", "module", ["name"]],
         ["type", "enable-compose-repos", ["compose_url"]]
     ]
@@ -225,6 +233,12 @@ def run_module():
     if six.PY2 and module.params['type'] in operations_not_supp_in_py2:
         msg = ("The configuration type '{0}' is not "
                "supported with python 2.").format(module.params['type'])
+        module.fail_json(msg=msg)
+
+    if (module.params['type'] == 'repo' and not
+            module.params['name'] and not module.params['down_url']):
+        msg = ("When using configuration type '{0}' you must provide a repo "
+               "'name' or a 'down_url'.").format(module.params['type'])
         module.fail_json(msg=msg)
 
     distro, major_version, __ = utils.get_distro_info()
@@ -262,11 +276,19 @@ def run_module():
             config_obj = cfg.TripleOYumRepoConfig(
                 dir_path=module.params['dir_path'],
                 environment_file=module.params['environment_file'])
-            config_obj.add_or_update_section(
-                module.params['name'],
-                set_dict=m_set_opts,
-                file_path=module.params['file_path'],
-                enabled=module.params['enabled'])
+            if module.params['name']:
+                config_obj.add_or_update_section(
+                    module.params['name'],
+                    set_dict=m_set_opts,
+                    file_path=module.params['file_path'],
+                    enabled=module.params['enabled'],
+                    from_url=module.params['down_url'])
+            else:
+                config_obj.add_or_update_all_sections_from_url(
+                    module.params['down_url'],
+                    set_dict=m_set_opts,
+                    file_path=module.params['file_path'],
+                    enabled=module.params['enabled'])
 
         elif module.params['type'] == 'global':
             config_obj = cfg.TripleOYumGlobalConfig(

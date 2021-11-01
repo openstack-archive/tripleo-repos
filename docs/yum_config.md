@@ -20,9 +20,18 @@ its repository and invoking in command line:
 
   Examples:
   ```
-  sudo python -m tripleo_yum_config repo appstream --enable --set-opts baseurl=http://newbaseurl exclude="package*"
-  sudo python -m tripleo_yum_config repo epel --disable --config-dir-path=/path/to/yum.repos.d
+  sudo python -m tripleo_yum_config repo --name appstream --enable --set-opts baseurl=http://newbaseurl exclude="package*"
+  sudo python -m tripleo_yum_config repo --name epel --disable --config-dir-path=/path/to/yum.repos.d
   ```
+  The parameter *--down-url* can be used to retrieve a configuration file from a URL and populate the destination
+  configuration file with all its content. When used together with *--name*, only the requested repo name will be
+  updated in the process.
+    Examples:
+  ```
+  sudo python -m tripleo_yum_config repo --down-url http://remoterepofile.repo --enable --set-opts priority=20  --config-file-path=/path/to/file.repo
+  sudo python -m tripleo_yum_config repo --name appstream --down-url http://remoterepofile.repo --enable
+  ```
+
 * **module**
 
   This subcommand lets you enable, disable, remove, install or reset a module.

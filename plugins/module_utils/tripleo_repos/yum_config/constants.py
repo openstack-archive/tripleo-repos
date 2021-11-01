@@ -33,7 +33,8 @@ YUM_REPO_SUPPORTED_OPTIONS = [
     'mirrorlist',
     'module_hotfixes',
     'name',
-    'priority'
+    'priority',
+    'skip_if_unavailable',
 ]
 
 """

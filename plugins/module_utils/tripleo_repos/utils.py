@@ -40,7 +40,7 @@ else:
         def http_get(url):
             try:
                 response = open_url(url, method='GET')
-                return (response.read(), response.status)
+                return (response.read().decode('utf-8'), response.status)
             except Exception as e:
                 return (str(e), -1)
     except ImportError:

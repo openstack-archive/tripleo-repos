@@ -71,3 +71,16 @@
         - molecule-idempotence-notest
       # NOTE: operation available only for CentOS >= 8
       when: ansible_distribution_major_version is version(8, '>=')
+    - name: "Test create repo from repo file"
+      become: true
+      tripleo.repos.yum_config:
+        type: repo
+        enabled: true
+        file_path: "/etc/yum.repos.d/delorean.repo"
+        down_url: "https://trunk.rdoproject.org/centos8-master/current-tripleo/delorean.repo"
+        set_options:
+          priority: "20"
+      tags:
+        # TODO: fix yum_config to correctly report changed state and uncomment
+        # the line below which disables molecule idempotence test.
+        - molecule-idempotence-notest

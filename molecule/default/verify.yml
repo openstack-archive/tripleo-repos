@@ -37,3 +37,11 @@
        - "BaseOS"
       # NOTE: operation available only for CentOS >= 8
       when: ansible_distribution_major_version is version(8, '>=')
+    - name: Check if 'priority' was set to 20 in 'delorean-component-compute'
+      include_tasks: assert_ini_key_value.yml
+      with_items:
+       - name: "delorean-component-compute"
+         path: "/etc/yum.repos.d/delorean.repo"
+         section: "delorean-component-compute"
+         key: priority
+         value: "20"

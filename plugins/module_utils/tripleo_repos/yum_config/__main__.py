@@ -49,7 +49,7 @@ def main():
     # Repo arguments
     repo_args_parser = argparse.ArgumentParser(add_help=False)
     repo_args_parser.add_argument(
-        'name',
+        '--name',
         help='name of the repo to be modified'
     )
 
@@ -84,6 +84,13 @@ def main():
         help=(
             'set the absolute directory path that holds all repo '
             'configuration files')
+    )
+    repo_args_parser.add_argument(
+        '--down-url',
+        dest='down_url',
+        help=(
+            'URL of a repo file to be used as base to create or update '
+            'a repo configuration file.')
     )
 
     # Generic key-value options
@@ -227,9 +234,21 @@ def main():
         config_obj = cfg.TripleOYumRepoConfig(
             dir_path=args.config_dir_path,
             environment_file=args.env_file)
-        config_obj.add_or_update_section(args.name, set_dict=set_dict,
-                                         file_path=args.config_file_path,
-                                         enabled=args.enable)
+        if args.name is not None:
+            config_obj.add_or_update_section(args.name, set_dict=set_dict,
+                                             file_path=args.config_file_path,
+                                             enabled=args.enable,
+                                             from_url=args.down_url)
+        else:
+            # When no section (name) is provided, we consider all sections from
+            # repo file downloaded from the URL, otherwise fail.
+            if args.down_url is None:
+                logging.error("You must provide a repo 'name' or a valid "
+                              "'url' where repo info can be downloaded.")
+                sys.exit(2)
+            config_obj.add_or_update_all_sections_from_url(
+                args.down_url, file_path=args.config_file_path,
+                set_dict=set_dict, enabled=args.enable)
 
     elif args.command == 'module':
         import tripleo_repos.yum_config.dnf_manager as dnf_mgr

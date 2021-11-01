@@ -15,6 +15,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 
+import io
 import logging
 import os
 import subprocess
@@ -31,7 +32,14 @@ from .exceptions import (
     TripleOYumConfigInvalidOption,
     TripleOYumConfigInvalidSection,
     TripleOYumConfigNotFound,
+    TripleOYumConfigUrlError,
 )
+try:
+    import tripleo_repos.utils as repos_utils
+except ImportError:
+    import ansible_collections.tripleo.repos.plugins.module_utils.\
+        tripleo_repos.utils as repos_utils
+
 
 py_version = sys.version_info.major
 if py_version < 3:
@@ -296,6 +304,30 @@ class TripleOYumConfig:
         logging.info("All sections for '%s' were successfully "
                      "updated.", file_path)
 
+    def get_config_from_url(self, url):
+        content, status = repos_utils.http_get(url)
+        if status != 200:
+            msg = ("Invalid response code received from provided url: "
+                   "{0}. Response code: {1}."
+                   ).format(url, status)
+            logging.error(msg)
+            raise TripleOYumConfigUrlError(error_msg=msg)
+        config = cfg_parser.ConfigParser()
+        if py_version < 3:
+            sfile = io.StringIO(content)
+            config.readfp(sfile)
+        else:
+            config.read_string(content)
+        return config
+
+    def get_options_from_url(self, url, section):
+        config = self.get_config_from_url(url)
+        if section not in config.sections():
+            msg = ("Section '{0}' was not found in the configuration file "
+                   "provided by the url {1}.").format(section, url)
+            raise TripleOYumConfigInvalidSection(error_msg=msg)
+        return dict(config.items(section))
+
 
 class TripleOYumRepoConfig(TripleOYumConfig):
     """Manages yum repo configuration files."""
@@ -310,26 +342,42 @@ class TripleOYumRepoConfig(TripleOYumConfig):
             environment_file=environment_file)
 
     def update_section(
-            self, section, set_dict=None, file_path=None, enabled=None):
-        update_dict = set_dict or {}
+            self, section, set_dict=None, file_path=None, enabled=None,
+            from_url=None):
+        update_dict = (
+            self.get_options_from_url(from_url, section) if from_url else {})
+        if set_dict:
+            update_dict.update(set_dict)
         if enabled is not None:
             update_dict['enabled'] = '1' if enabled else '0'
         if update_dict:
             super(TripleOYumRepoConfig, self).update_section(
                 section, update_dict, file_path=file_path)
 
-    def add_section(self, section, add_dict, file_path, enabled=None):
-        update_dict = add_dict or {}
+    def add_section(self, section, add_dict, file_path, enabled=None,
+                    from_url=None):
+        update_dict = (
+            self.get_options_from_url(from_url, section) if from_url else {})
+        update_dict.update(add_dict)
+
         if enabled is not None:
             update_dict['enabled'] = '1' if enabled else '0'
         super(TripleOYumRepoConfig, self).add_section(
             section, update_dict, file_path)
 
-    def add_or_update_section(self, section, set_dict=None, file_path=None,
-                              enabled=None, create_if_not_exists=True):
+    def add_or_update_section(self, section, set_dict=None,
+                              file_path=None, enabled=None,
+                              create_if_not_exists=True, from_url=None):
+        new_set_dict = (
+            self.get_options_from_url(from_url, section) if from_url else {})
+        new_set_dict.update(set_dict)
+        # make sure that it has a name
+        if 'name' not in new_set_dict.keys():
+            new_set_dict['name'] = section
+        # Try to update existing repos
         try:
             self.update_section(
-                section, set_dict=set_dict, file_path=file_path,
+                section, set_dict=new_set_dict, file_path=file_path,
                 enabled=enabled)
         except TripleOYumConfigNotFound:
             if not create_if_not_exists or file_path is None:
@@ -338,10 +386,33 @@ class TripleOYumRepoConfig(TripleOYumConfig):
             # Create a new file if it does not exists
             with open(file_path, 'w+'):
                 pass
-            # When creating a new repo file, make sure that it has a name
-            if 'name' not in set_dict.keys():
-                set_dict['name'] = section
-            self.add_section(section, set_dict, file_path, enabled=enabled)
+            self.add_section(section, new_set_dict, file_path, enabled=enabled)
+
+        except TripleOYumConfigInvalidSection:
+            self.add_section(section, new_set_dict, file_path, enabled=enabled)
+
+    def add_or_update_all_sections_from_url(
+            self, from_url, file_path=None, set_dict=None, enabled=None,
+            create_if_not_exists=True):
+        """Adds or updates all sections based on repo file from a URL."""
+        tmp_config = self.get_config_from_url(from_url)
+        if file_path is None:
+            # Build a file_path based on download url. If not compatible,
+            # don't fill file_path and let the code search for sections in all
+            # repo files inside config dir_path.
+            file_name = from_url.split('/')[-1]
+            if file_name.endswith(".repo"):
+                # Expecting a '*.repo' filename here, since the file can't be
+                # created with a different extension
+                file_path = os.path.join(self.dir_path, file_name)
+
+        for section in tmp_config.sections():
+            update_dict = dict(tmp_config.items(section))
+            update_dict.update(set_dict)
+            self.add_or_update_section(
+                section, set_dict=update_dict,
+                file_path=file_path, enabled=enabled,
+                create_if_not_exists=create_if_not_exists)
 
 
 class TripleOYumGlobalConfig(TripleOYumConfig):
@@ -372,7 +443,7 @@ class TripleOYumGlobalConfig(TripleOYumConfig):
         super(TripleOYumGlobalConfig, self).update_section(
             section, set_dict, file_path=(file_path or self.conf_file_path))
 
-    def add_section(self, section, set_dict, file_path=None):
+    def add_section(self, section, add_dict, file_path=None):
         add_file_path = file_path or self.conf_file_path
         super(TripleOYumGlobalConfig, self).add_section(
-            section, set_dict, add_file_path)
+            section, add_dict, add_file_path)
