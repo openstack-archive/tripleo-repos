@@ -56,7 +56,7 @@ else:
                 return (str(e), -1)
 
 
-def load_logging(level=logging.INFO):
+def load_logging(level=logging.INFO, module_name="tripleo-repos"):
     """Load and set logging level. Default is set to logging.INFO level."""
     logger = logging.getLogger()
     # Only add logger once to avoid duplicated streams in tests
@@ -73,7 +73,7 @@ def load_logging(level=logging.INFO):
         if stdout_handlers == []:
             formatter = logging.Formatter(
                 (
-                    "%(asctime)s - tripleo-get-hash - %(levelname)s - "
+                    "%(asctime)s - " + module_name + " - %(levelname)s - "
                     "%(message)s"
                 )
             )

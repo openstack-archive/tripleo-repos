@@ -38,7 +38,7 @@ def options_to_dict(options):
 
 
 def main():
-    load_logging()
+    load_logging(module_name="tripleo-yum-config")
     # Get release model and version
     distro, major_version, __ = utils.get_distro_info()
     py_version = sys.version_info.major

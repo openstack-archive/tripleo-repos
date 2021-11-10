@@ -32,7 +32,7 @@ def _validate_args(parsed_args):
 
 
 def main():
-    load_logging()
+    load_logging(module_name="tripleo-get-hash")
     config = TripleOHashInfo.load_config()
     parser = argparse.ArgumentParser(description='tripleo-get-hash.py')
     parser.add_argument(
