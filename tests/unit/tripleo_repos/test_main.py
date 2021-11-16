@@ -154,6 +154,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['current']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
@@ -173,6 +174,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['current']
         args.branch = 'mitaka'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current/delorean.repo', args),
@@ -192,6 +194,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['deps']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean-deps]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_called_once_with('roads/delorean-deps.repo', args)
@@ -205,6 +208,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['current-tripleo']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current-tripleo/delorean.repo',
@@ -224,6 +228,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['current-tripleo-dev']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         mock_get.assert_any_call('roads/delorean-deps.repo', args)
@@ -247,6 +252,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['tripleo-ci-testing']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/tripleo-ci-testing/delorean.repo',
@@ -266,6 +272,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['current-tripleo-rdo']
         args.branch = 'master'
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_get.return_value = '[delorean]\nMr. Fusion'
         main._install_repos(args, 'roads/')
         self.assertEqual([mock.call('roads/current-tripleo-rdo/delorean.repo',
@@ -304,6 +311,7 @@ class TestTripleORepos(testtools.TestCase):
         args.repos = ['ceph']
         args.branch = branch
         args.output_path = 'test'
+        args.distro = 'fake'
         mock_repo = '[centos-ceph-luminous]\nMr. Fusion'
         mock_create_ceph.return_value = mock_repo
         main._install_repos(args, 'roads/')
@@ -317,6 +325,7 @@ class TestTripleORepos(testtools.TestCase):
         args.branch = 'master'
         args.output_path = 'test'
         args.mirror = 'http://foo'
+        args.distro = 'fake'
         main._install_repos(args, 'roads/')
         expected_repo = ('\n[tripleo-centos-opstools]\n'
                          'name=tripleo-centos-opstools\n'
@@ -335,7 +344,7 @@ class TestTripleORepos(testtools.TestCase):
         args.output_path = 'test'
         args.old_mirror = 'http://mirror.centos.org'
         args.mirror = 'http://foo'
-        args.distro = 'centos'
+        args.distro = 'centos7'
         args.rdo_mirror = 'http://bar'
         # Abbreviated repos to verify the regex works
         fake_repo = '''
@@ -436,6 +445,53 @@ enabled=1
                               '\n[tripleo-centos-powertools]\n'
                               'name=tripleo-centos-powertools\n'
                               'baseurl=mirror/centos/8-stream/PowerTools'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
+                              'test')
+                          ],
+                         mock_write.mock_calls)
+
+    @mock.patch('tripleo_repos.main._get_repo')
+    @mock.patch('tripleo_repos.main._write_repo')
+    def test_install_repos_centos9_stream(self, mock_write, mock_get):
+        args = mock.Mock()
+        args.repos = ['current']
+        args.branch = 'master'
+        args.output_path = 'test'
+        args.distro = 'centos9'
+        args.stream = True
+        args.no_stream = False
+        args.mirror = 'mirror'
+        mock_get.return_value = '[delorean]\nMr. Fusion'
+        main._install_repos(args, 'roads/')
+        self.assertEqual([mock.call('roads/current/delorean.repo', args),
+                          mock.call('roads/delorean-deps.repo', args),
+                          ],
+                         mock_get.mock_calls)
+        self.assertEqual([mock.call('[delorean]\nMr. Fusion', 'test',
+                                    name='delorean'),
+                          mock.call('[delorean]\nMr. Fusion', 'test'),
+                          mock.call((
+                              '\n[tripleo-centos-highavailability]\n'
+                              'name=tripleo-centos-highavailability\n'
+                              'baseurl=mirror/9-stream/HighAvailability'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
+                              'test'),
+                          mock.call((
+                              '\n[tripleo-centos-powertools]\n'
+                              'name=tripleo-centos-powertools\n'
+                              'baseurl=mirror/9-stream/CRB'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
+                              'test'),
+                          mock.call((
+                              '\n[tripleo-centos-appstream]\n'
+                              'name=tripleo-centos-appstream\n'
+                              'baseurl=mirror/9-stream/AppStream'
+                              '/$basearch/os/\ngpgcheck=0\nenabled=1\n\n'),
+                              'test'),
+                          mock.call((
+                              '\n[tripleo-centos-baseos]\n'
+                              'name=tripleo-centos-baseos\n'
+                              'baseurl=mirror/9-stream/BaseOS'
                               '/$basearch/os/\ngpgcheck=0\nenabled=1\n'),
                               'test')
                           ],
