@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, print_function)
 
 
 __metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: yum_config
@@ -178,6 +179,8 @@ EXAMPLES = r'''
 
 RETURN = r''' # '''
 
+import os  # noqa: E402
+
 from ansible.module_utils import six  # noqa: E402
 from ansible.module_utils.basic import AnsibleModule  # noqa: E402
 
@@ -316,7 +319,16 @@ def run_module():
                 override_repos=module.params['disable_conflicting_variants'])
             # 3. Disable all repos provided in disable_repos
             for file in module.params['disable_repos']:
-                repo_obj.update_all_sections(file, enabled=False)
+                valid_path = None
+                rel_path = os.path.join(module.params['dir_path'], file)
+
+                if cfg.validated_file_path(file):
+                    valid_path = file
+                elif cfg.validated_file_path(rel_path):
+                    valid_path = rel_path
+
+                if valid_path is not None:
+                    repo_obj.update_all_sections(valid_path, enabled=False)
 
         elif module.params['type'] == 'module':
             try:

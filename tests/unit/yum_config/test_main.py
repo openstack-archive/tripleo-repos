@@ -181,6 +181,8 @@ class TestTripleoYumConfigMain(TestTripleoYumConfigBase):
             repos_obj, 'enable_compose_repos')
         mock_update_all = self.mock_object(
             repos_obj, 'update_all_sections')
+        self.mock_object(yum_cfg, 'validated_file_path',
+                         mock.Mock(return_value=True))
 
         main.main()
 
