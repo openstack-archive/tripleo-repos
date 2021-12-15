@@ -39,7 +39,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_path = mock.Mock()
         mock_gbp.return_value = mock_path
         main.main()
-        mock_validate.assert_called_once_with(args, 'CentOS 8')
+        mock_validate.assert_called_once_with(args, 'CentOS 8', '8')
         mock_gbp.assert_called_once_with(args)
         mock_ip.assert_called_once_with()
         mock_remove.assert_called_once_with(args)
@@ -61,7 +61,7 @@ class TestTripleORepos(testtools.TestCase):
         mock_path = mock.Mock()
         mock_gbp.return_value = mock_path
         main.main()
-        mock_validate.assert_called_once_with(args, 'CentOS 8')
+        mock_validate.assert_called_once_with(args, 'CentOS 8', '8')
         mock_gbp.assert_called_once_with(args)
         assert not mock_ip.called, '_install_priorities should no tbe called'
         mock_remove.assert_called_once_with(args)
@@ -637,64 +637,65 @@ class TestValidate(testtools.TestCase):
         self.args.repos = ['current']
         self.args.branch = 'master'
         self.args.distro = 'centos7'
+        self.distro_major_version_id = "7"
         self.args.stream = False
         self.args.no_stream = False
 
     def test_good(self):
-        main._validate_args(self.args, '')
+        main._validate_args(self.args, '', '')
 
     def test_current_and_tripleo_dev(self):
         self.args.repos = ['current', 'current-tripleo-dev']
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, '')
+                          self.args, '', '')
 
     def test_tripleo_ci_testing_and_current_tripleo(self):
         self.args.repos = ['current-tripleo', 'tripleo-ci-testing']
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, '')
+                          self.args, '', '')
 
     def test_tripleo_ci_testing_and_ceph_opstools_allowed(self):
         self.args.repos = ['ceph', 'opstools', 'tripleo-ci-testing']
-        main._validate_args(self.args, '')
+        main._validate_args(self.args, '', '')
 
     def test_tripleo_ci_testing_and_deps_allowed(self):
         self.args.repos = ['deps', 'tripleo-ci-testing']
-        main._validate_args(self.args, '')
+        main._validate_args(self.args, '', '')
 
     def test_ceph_and_tripleo_dev(self):
         self.args.repos = ['current-tripleo-dev', 'ceph']
         self.args.output_path = main.DEFAULT_OUTPUT_PATH
-        main._validate_args(self.args, '')
+        main._validate_args(self.args, '', '')
 
     def test_deps_and_tripleo_dev(self):
         self.args.repos = ['deps', 'current-tripleo-dev']
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, '')
+                          self.args, '', '')
 
     def test_current_and_tripleo(self):
         self.args.repos = ['current', 'current-tripleo']
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, '')
+                          self.args, '', '')
 
     def test_deps_and_tripleo_allowed(self):
         self.args.repos = ['deps', 'current-tripleo']
-        main._validate_args(self.args, '')
+        main._validate_args(self.args, '', '')
 
     def test_invalid_distro(self):
         self.args.distro = 'Jigawatts 1.21'
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, '')
+                          self.args, '', '')
 
     def test_invalid_stream(self):
         self.args.stream = True
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, 'CentOS 8')
+                          self.args, 'CentOS 8', '8')
 
     def test_invalid_no_stream(self):
         self.args.stream = False
         self.args.no_stream = True
         self.assertRaises(main.InvalidArguments, main._validate_args,
-                          self.args, 'CentOS 8 Stream')
+                          self.args, 'CentOS 8 Stream', '8')
 
     def test_validate_distro_repos(self):
         self.assertTrue(main._validate_distro_repos(self.args))

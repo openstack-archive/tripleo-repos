@@ -303,11 +303,15 @@ def _validate_tripleo_ci_testing(repos):
     return True
 
 
-def _validate_distro_stream(args, distro_name):
+def _validate_distro_stream(args, distro_name, distro_major_version_id):
     """Validate stream related args vs host
 
     Fails if stream is to be used but the host isn't a stream OS or vice versa
     """
+    if 'centos' not in distro_name.lower():
+        return True
+    if distro_name.lower() == 'centos' and distro_major_version_id != '8':
+        return True
     is_stream = args.stream and not args.no_stream
     if is_stream and 'stream' not in distro_name.lower():
         raise InvalidArguments('--stream provided, but OS is not the Stream '
@@ -319,11 +323,11 @@ def _validate_distro_stream(args, distro_name):
     return True
 
 
-def _validate_args(args, distro_name):
+def _validate_args(args, distro_name, distro_major_version_id):
     _validate_current_tripleo(args.repos)
     _validate_distro_repos(args)
     _validate_tripleo_ci_testing(args.repos)
-    _validate_distro_stream(args, distro_name)
+    _validate_distro_stream(args, distro_name, distro_major_version_id)
 
 
 def _remove_existing(args):
@@ -541,7 +545,7 @@ def _run_pkg_clean(distro):
 def main():
     distro_id, distro_major_version_id, distro_name = _get_distro()
     args = _parse_args(distro_id, distro_major_version_id)
-    _validate_args(args, distro_name)
+    _validate_args(args, distro_name, distro_major_version_id)
     base_path = _get_base_path(args)
     if args.distro in ['centos7']:
         _install_priorities()
