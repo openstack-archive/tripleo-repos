@@ -547,7 +547,7 @@ def main():
     args = _parse_args(distro_id, distro_major_version_id)
     _validate_args(args, distro_name, distro_major_version_id)
     base_path = _get_base_path(args)
-    if args.distro in ['centos7']:
+    if (distro_name.lower(), distro_major_version_id) == ("centos", "7"):
         _install_priorities()
     _remove_existing(args)
     _install_repos(args, base_path)

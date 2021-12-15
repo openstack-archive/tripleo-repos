@@ -25,15 +25,14 @@ from tripleo_repos import main
 @ddt.ddt
 class TestTripleORepos(testtools.TestCase):
     @mock.patch('tripleo_repos.main._get_distro')
-    @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'centos7'])
+    @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'centos8'])
     @mock.patch('tripleo_repos.main._run_pkg_clean')
     @mock.patch('tripleo_repos.main._validate_args')
     @mock.patch('tripleo_repos.main._get_base_path')
-    @mock.patch('tripleo_repos.main._install_priorities')
     @mock.patch('tripleo_repos.main._remove_existing')
     @mock.patch('tripleo_repos.main._install_repos')
-    def test_main(self, mock_install, mock_remove, mock_ip, mock_gbp,
-                  mock_validate, mock_clean, mock_distro):
+    def test_main_centos8(self, mock_install, mock_remove, mock_gbp,
+                          mock_validate, mock_clean, mock_distro):
         mock_distro.return_value = ('centos', '8', 'CentOS 8')
         args = main._parse_args('centos', '8')
         mock_path = mock.Mock()
@@ -41,10 +40,8 @@ class TestTripleORepos(testtools.TestCase):
         main.main()
         mock_validate.assert_called_once_with(args, 'CentOS 8', '8')
         mock_gbp.assert_called_once_with(args)
-        mock_ip.assert_called_once_with()
         mock_remove.assert_called_once_with(args)
-        mock_install.assert_called_once_with(args, mock_path)
-        mock_clean.assert_called_once_with('centos7')
+        mock_clean.assert_called_once_with('centos8')
 
     @mock.patch('tripleo_repos.main._get_distro')
     @mock.patch('sys.argv', ['tripleo-repos', 'current', '-d', 'fedora'])
