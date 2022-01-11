@@ -159,7 +159,10 @@ class TripleOYumComposeRepoConfig(TripleOYumConfig):
                 self.add_section(var.lower(), add_dict, file_path)
             except TripleOYumConfigInvalidSection:
                 logging.debug("Section '%s' that already exists in this file. "
-                              "Skipping...", var)
+                              "Trying to update it...", var)
+                self.update_section(var.lower(),
+                                    set_dict=add_dict,
+                                    file_path=file_path)
             # needed to override other repos
             updated_repos[var.lower()] = file_path
 

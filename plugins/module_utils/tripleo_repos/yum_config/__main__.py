@@ -15,6 +15,7 @@
 
 import argparse
 import logging
+import os
 import sys
 
 from tripleo_repos.utils import load_logging
@@ -277,7 +278,16 @@ def main():
                                       override_repos=args.disable_conflicting)
         if args.disable_repos:
             for file in args.disable_repos:
-                repo_obj.update_all_sections(file, enabled=False)
+                valid_path = None
+                rel_path = os.path.join(args.config_dir_path, file)
+
+                if cfg.validated_file_path(file):
+                    valid_path = file
+                elif cfg.validated_file_path(rel_path):
+                    valid_path = rel_path
+
+                if valid_path is not None:
+                    repo_obj.update_all_sections(valid_path, enabled=False)
 
 
 def cli_entrypoint():
