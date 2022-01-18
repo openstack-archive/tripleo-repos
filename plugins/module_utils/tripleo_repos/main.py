@@ -40,9 +40,11 @@ DEFAULT_RDO_MIRROR = 'https://trunk.rdoproject.org'
 # RHEL is only provided to licensed cloud providers via RHUI
 DEFAULT_MIRROR_MAP = {
     'fedora': 'https://mirrors.fedoraproject.org',
-    'centos': 'http://mirror.centos.org',
-    'ubi': 'http://mirror.centos.org',
-    'rhel': 'https://trunk.rdoproject.org',
+    'centos7': 'http://mirror.centos.org',
+    'centos8': 'http://mirror.centos.org',
+    'centos9': 'http://mirror.stream.centos.org',
+    'ubi8': 'http://mirror.centos.org',
+    'rhel8': 'https://trunk.rdoproject.org',
 }
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
@@ -62,7 +64,7 @@ enabled=1
 HIGHAVAILABILITY_REPO_TEMPLATE = '''
 [tripleo-centos-highavailability]
 name=tripleo-centos-highavailability
-baseurl=%(mirror)s/centos/%(stream)s/HighAvailability/$basearch/os/
+baseurl=%(mirror)s/%(legacy_url)s%(stream)s/HighAvailability/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
@@ -70,23 +72,23 @@ enabled=1
 POWERTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-powertools]
 name=tripleo-centos-powertools
-baseurl=%(mirror)s/centos/%(stream)s/PowerTools/$basearch/os/
+baseurl=%(mirror)s/%(legacy_url)s%(stream)s/%(pt_name)s/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
 # ubi-8 only
 APPSTREAM_REPO_TEMPLATE = '''
-[AppStream]
-name=CentOS-$releasever - AppStream
-baseurl=%(mirror)s/centos/$releasever/AppStream/$basearch/os/
+[tripleo-centos-appstream]
+name=tripleo-centos-appstream
+baseurl=%(mirror)s/%(legacy_url)s%(stream)s/AppStream/$basearch/os/
 gpgcheck=0
 enabled=1
 %(extra)s
 '''
 BASE_REPO_TEMPLATE = '''
-[BaseOS]
-name=CentOS-$releasever - Base
-baseurl=%(mirror)s/centos/$releasever/BaseOS/$basearch/os/
+[tripleo-centos-baseos]
+name=tripleo-centos-baseos
+baseurl=%(mirror)s/%(legacy_url)s%(stream)s/BaseOS/$basearch/os/
 gpgcheck=0
 enabled=1
 '''
@@ -96,10 +98,13 @@ enabled=1
 SUPPORTED_DISTROS = [
     ('centos', '7'),
     ('centos', '8'),
+    ('centos', '9'),
     ('fedora', ''),
     ('rhel', '8'),
     ('ubi', '8')  # a subcase of the rhel distro
 ]
+DISTRO_CHOICES = ["".join(distro_pair)
+                  for distro_pair in SUPPORTED_DISTROS]
 
 
 class InvalidArguments(Exception):
@@ -159,11 +164,6 @@ def _parse_args(distro_id, distro_major_version_id):
 
     distro = "{0}{1}".format(distro_id, distro_major_version_id)
 
-    # Calculating arguments default from constants
-    default_mirror = DEFAULT_MIRROR_MAP.get(distro_id, None)
-    distro_choices = ["".join(distro_pair)
-                      for distro_pair in SUPPORTED_DISTROS]
-
     parser = argparse.ArgumentParser(
         description='Download and install repos necessary for TripleO. Note '
                     'that some of these repos require yum-plugin-priorities, '
@@ -184,7 +184,7 @@ def _parse_args(distro_id, distro_major_version_id):
                              'from the appropriate location.')
     parser.add_argument('-d', '--distro',
                         default=distro,
-                        choices=distro_choices,
+                        choices=DISTRO_CHOICES,
                         nargs='?',
                         help='Target distro with default detected at runtime. '
                         )
@@ -196,7 +196,6 @@ def _parse_args(distro_id, distro_major_version_id):
                         default=DEFAULT_OUTPUT_PATH,
                         help='Directory in which to save the selected repos.')
     parser.add_argument('--mirror',
-                        default=default_mirror,
                         help='Server from which to install base OS packages. '
                              'Default value is based on distro param.')
     parser.add_argument('--rdo-mirror',
@@ -215,6 +214,15 @@ def _parse_args(distro_id, distro_major_version_id):
     args = parser.parse_args()
     if args.no_stream:
         args.stream = False
+
+    # Default mirror for args.distro (which defaults to 'distro')
+    default_mirror = DEFAULT_MIRROR_MAP.get(args.distro, None)
+    if default_mirror is None and 'fedora' in args.distro:
+        # We don't have different mirrors for specific fedora releases
+        default_mirror = DEFAULT_MIRROR_MAP.get('fedora', None)
+
+    if args.mirror is None:
+        args.mirror = default_mirror
     args.old_mirror = default_mirror
 
     return args
@@ -256,7 +264,7 @@ def _validate_distro_repos(args):
     if 'fedora' in args.distro:
         valid_repos = ['current', 'current-tripleo', 'ceph', 'deps',
                        'tripleo-ci-testing']
-    elif args.distro in ['centos7', 'centos8', 'rhel8', 'ubi8']:
+    elif args.distro in DISTRO_CHOICES:
         valid_repos = ['ceph', 'current', 'current-tripleo',
                        'current-tripleo-dev', 'deps', 'tripleo-ci-testing',
                        'opstools', 'current-tripleo-rdo']
@@ -496,6 +504,7 @@ def _install_repos(args, base_path):
 
     distro = args.distro
     # CentOS-8 AppStream is required for UBI-8
+    legacy_url = 'centos/'
     if distro == 'ubi8':
         if not os.path.exists("/etc/distro.repos.d"):
             print('WARNING: For UBI it is recommended to create '
@@ -513,24 +522,53 @@ def _install_repos(args, base_path):
         extra = ''
         if args.branch in ['train', 'ussuri', 'victoria']:
             extra = 'exclude=edk2-ovmf-20200602gitca407c7246bf-5*'
+
         content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror,
-                                             'extra': extra}
+                                             'extra': extra,
+                                             'legacy_url': legacy_url,
+                                             'stream': '8'}
         _write_repo(content, distro_path)
-        content = BASE_REPO_TEMPLATE % {'mirror': args.mirror}
+        content = BASE_REPO_TEMPLATE % {'mirror': args.mirror,
+                                        'legacy_url': legacy_url,
+                                        'stream': '8'}
         _write_repo(content, distro_path)
         distro = 'centos8'  # switch it to continue as centos8 distro
 
-    # HA, Powertools are required for CentOS-8
-    if distro == 'centos8':
-        stream = '8'
-        if args.stream and not args.no_stream:
-            stream = stream + '-stream'
-        content = HIGHAVAILABILITY_REPO_TEMPLATE % {'mirror': args.mirror,
-                                                    'stream': stream}
-        _write_repo(content, args.output_path)
-        content = POWERTOOLS_REPO_TEMPLATE % {'mirror': args.mirror,
-                                              'stream': stream}
-        _write_repo(content, args.output_path)
+    if 'centos' in distro:
+        stream = str(distro[-1])
+        # HA, Powertools are required for CentOS-8
+        if int(stream) >= 8:
+            if args.stream and not args.no_stream:
+                stream = stream + '-stream'
+
+            pt_name = 'PowerTools'
+            if '9' in stream:
+                legacy_url = ''
+                pt_name = 'CRB'
+
+            content = HIGHAVAILABILITY_REPO_TEMPLATE % {
+                'mirror': args.mirror,
+                'stream': stream,
+                'legacy_url': legacy_url}
+            _write_repo(content, args.output_path)
+
+            content = POWERTOOLS_REPO_TEMPLATE % {'mirror': args.mirror,
+                                                  'stream': stream,
+                                                  'legacy_url': legacy_url,
+                                                  'pt_name': pt_name}
+            _write_repo(content, args.output_path)
+
+            if '9' in stream:
+                content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror,
+                                                     'extra': '',
+                                                     'legacy_url': legacy_url,
+                                                     'stream': stream}
+                _write_repo(content, args.output_path)
+
+                content = BASE_REPO_TEMPLATE % {'mirror': args.mirror,
+                                                'legacy_url': legacy_url,
+                                                'stream': stream}
+                _write_repo(content, args.output_path)
 
 
 def _run_pkg_clean(distro):
