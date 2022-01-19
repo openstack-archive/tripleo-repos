@@ -590,7 +590,18 @@ enabled=1
         expected_repo = '''
 [tripleo-centos-ceph-jewel]
 name=tripleo-centos-ceph-jewel
-baseurl=http://foo/centos/8/storage/$basearch/ceph-jewel/
+baseurl=http://foo/SIGs/9-stream/storage/$basearch/ceph-jewel/
+gpgcheck=0
+enabled=1
+'''
+        self.assertEqual(expected_repo, result)
+
+        mock_args = mock.Mock(mirror='http://foo', distro='centos8')
+        result = main._create_ceph(mock_args, 'jewel')
+        expected_repo = '''
+[tripleo-centos-ceph-jewel]
+name=tripleo-centos-ceph-jewel
+baseurl=http://foo/centos/8-stream/storage/$basearch/ceph-jewel/
 gpgcheck=0
 enabled=1
 '''

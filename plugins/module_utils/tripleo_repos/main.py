@@ -53,6 +53,13 @@ baseurl=%(mirror)s/centos/%(centos_release)s/storage/$basearch/ceph-%(ceph_relea
 gpgcheck=0
 enabled=1
 '''
+CEPH_SIG_REPO_TEMPLATE = '''
+[tripleo-centos-ceph-%(ceph_release)s]
+name=tripleo-centos-ceph-%(ceph_release)s
+baseurl=%(mirror)s/SIGs/%(centos_release)s/storage/$basearch/ceph-%(ceph_release)s/
+gpgcheck=0
+enabled=1
+'''
 OPSTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-opstools]
 name=tripleo-centos-opstools
@@ -392,10 +399,18 @@ def _install_priorities():
 
 def _create_ceph(args, release):
     """Generate a Ceph repo file for release"""
-    centos_release = '7' if args.distro == 'centos7' else '8'
-    return CEPH_REPO_TEMPLATE % {'centos_release': centos_release,
-                                 'ceph_release': release,
-                                 'mirror': args.mirror}
+    centos_release = '9-stream'
+    template = CEPH_SIG_REPO_TEMPLATE
+    if args.distro == 'centos7':
+        centos_release = '7'
+        template = CEPH_REPO_TEMPLATE
+    elif args.distro == 'centos8':
+        centos_release = '8-stream'
+        template = CEPH_REPO_TEMPLATE
+
+    return template % {'centos_release': centos_release,
+                       'ceph_release': release,
+                       'mirror': args.mirror}
 
 
 def _change_priority(content, new_priority):
