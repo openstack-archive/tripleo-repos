@@ -405,7 +405,7 @@ def _create_ceph(args, release):
         centos_release = '7'
         template = CEPH_REPO_TEMPLATE
     elif args.distro == 'centos8':
-        centos_release = '8-stream'
+        centos_release = '8' if release == 'nautilus' else '8-stream'
         template = CEPH_REPO_TEMPLATE
 
     return template % {'centos_release': centos_release,
