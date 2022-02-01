@@ -60,6 +60,13 @@ baseurl=%(mirror)s/SIGs/%(centos_release)s/storage/$basearch/ceph-%(ceph_release
 gpgcheck=0
 enabled=1
 '''
+CEPH_RDO_REPO_TEMPLATE = '''
+[tripleo-centos-ceph-%(ceph_release)s]
+name=tripleo-centos-ceph-%(ceph_release)s
+baseurl=https://trunk.rdoproject.org/centos8-master/deps/storage/%(ceph_release)s/
+gpgcheck=0
+enabled=1
+'''
 OPSTOOLS_REPO_TEMPLATE = '''
 [tripleo-centos-opstools]
 name=tripleo-centos-opstools
@@ -409,8 +416,10 @@ def _create_ceph(args, release):
     if args.distro == 'centos7':
         centos_release = '7'
         template = CEPH_REPO_TEMPLATE
+    elif args.distro == 'centos8' and release == 'nautilus':
+        template = CEPH_RDO_REPO_TEMPLATE
     elif args.distro == 'centos8':
-        centos_release = '8' if release == 'nautilus' else '8-stream'
+        centos_release = '8-stream'
         template = CEPH_REPO_TEMPLATE
 
     return template % {'centos_release': centos_release,
