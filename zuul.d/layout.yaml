@@ -1,16 +1,4 @@
 - job:
-    name: tox-sanity-py27
-    description:  Run ansible-test sanity tests on a collection
-    parent: openstack-tox-py27
-    vars:
-      tox_envlist: sanity
-- job:
-    name: tox-sanity-py36
-    description:  Run ansible-test sanity tests on a collection
-    parent: openstack-tox-py36
-    vars:
-      tox_envlist: sanity
-- job:
     name: tox-sanity-py39
     description:  Run ansible-test sanity tests on a collection
     parent: openstack-tox-py39
@@ -20,7 +8,7 @@
     templates:
       - check-requirements
       - openstack-cover-jobs
-      - openstack-python3-wallaby-jobs
+      - openstack-python3-zed-jobs
     check:
       jobs:
         - openstack-tox-pep8:
@@ -31,13 +19,10 @@
         - tripleo-buildimage-overcloud-hardened-uefi-full-centos-9:
             dependencies: &deps_unit_lint_cprovider
               - openstack-tox-pep8
-              - openstack-tox-py36
               - openstack-tox-py38
               - openstack-tox-py39
         - tripleo-ci-centos-9-content-provider:
             dependencies: *deps_unit_lint_cprovider
-        - tox-sanity-py27
-        - tox-sanity-py36
         - tox-sanity-py39
     gate:
       jobs:
