@@ -115,7 +115,9 @@ SUPPORTED_DISTROS = [
     ('centos', '9'),
     ('fedora', ''),
     ('rhel', '8'),
-    ('ubi', '8')  # a subcase of the rhel distro
+    ('rhel', '9'),
+    ('ubi', '8'),
+    ('ubi', '9')  # a subcase of the rhel distro
 ]
 DISTRO_CHOICES = ["".join(distro_pair)
                   for distro_pair in SUPPORTED_DISTROS]
