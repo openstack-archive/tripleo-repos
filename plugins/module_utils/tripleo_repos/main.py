@@ -44,7 +44,9 @@ DEFAULT_MIRROR_MAP = {
     'centos8': 'http://mirror.centos.org',
     'centos9': 'http://mirror.stream.centos.org',
     'ubi8': 'http://mirror.centos.org',
+    'ubi9': 'http://mirror.stream.centos.org',
     'rhel8': 'https://trunk.rdoproject.org',
+    'rhel9': 'https://trunk.rdoproject.org',
 }
 CEPH_REPO_TEMPLATE = '''
 [tripleo-centos-ceph-%(ceph_release)s]
@@ -361,7 +363,7 @@ def _validate_args(args, distro_name, distro_major_version_id):
 
 def _remove_existing(args):
     """Remove any delorean* or opstools repos that already exist"""
-    if args.distro == 'ubi8':
+    if args.distro in ['ubi8', 'ubi9']:
         regex = '^(BaseOS|AppStream|delorean|tripleo-centos-' \
                 '(opstools|ceph|highavailability|powertools)).*.repo'
     else:
@@ -386,8 +388,9 @@ def _remove_existing(args):
 
 
 def _get_base_path(args):
-    if args.distro == 'ubi8':
-        distro = 'centos8'  # there are no base paths for UBI that work well
+    if args.distro in ['ubi8', 'ubi9']:
+        # there are no base paths for UBI that work well
+        distro = args.distro.replace('ubi', 'centos')
     else:
         distro = args.distro
 
@@ -536,7 +539,7 @@ def _install_repos(args, base_path):
     distro = args.distro
     # CentOS-8 AppStream is required for UBI-8
     legacy_url = 'centos/'
-    if distro == 'ubi8':
+    if distro in ['ubi8', 'ubi9']:
         if not os.path.exists("/etc/distro.repos.d"):
             print('WARNING: For UBI it is recommended to create '
                   '/etc/distro.repos.d and rerun!')
@@ -554,16 +557,18 @@ def _install_repos(args, base_path):
         if args.branch in ['train', 'ussuri', 'victoria']:
             extra = 'exclude=edk2-ovmf-20200602gitca407c7246bf-5*'
 
+        distro_name = str(distro[-1]) + '-stream'
         content = APPSTREAM_REPO_TEMPLATE % {'mirror': args.mirror,
                                              'extra': extra,
                                              'legacy_url': legacy_url,
-                                             'stream': '8'}
+                                             'stream': distro_name}
         _write_repo(content, distro_path)
         content = BASE_REPO_TEMPLATE % {'mirror': args.mirror,
                                         'legacy_url': legacy_url,
-                                        'stream': '8'}
+                                        'stream': distro_name}
         _write_repo(content, distro_path)
-        distro = 'centos8'  # switch it to continue as centos8 distro
+        if distro in ['centos8', 'centos9', 'ubi8', 'ubi9']:
+            distro = 'centos' + str(distro[-1])
 
     if 'centos' in distro:
         stream = str(distro[-1])
