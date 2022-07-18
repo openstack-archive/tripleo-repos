@@ -47,7 +47,8 @@ DEFAULT_CONFIG = {
         "stein",
         "queens",
         "osp16-2",
-        "osp17"
+        "osp17",
+        "osp17-1"
     ],
     "dlrn_url": "https://trunk.rdoproject.org",
     "rdo_named_tags": [

@@ -14,6 +14,7 @@ tripleo_releases:
   - queens
   - osp16-2
   - osp17
+  - osp17-1
 
 tripleo_ci_components:
   - baremetal
