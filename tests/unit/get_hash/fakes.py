@@ -71,6 +71,7 @@ dlrn_url: 'https://trunk.rdoproject.org'
 
 tripleo_releases:
   - master
+  - zed
   - wallaby
   - victoria
   - ussuri

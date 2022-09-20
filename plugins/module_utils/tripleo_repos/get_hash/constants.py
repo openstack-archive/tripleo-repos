@@ -40,6 +40,7 @@ CONFIG_PATH = '/usr/local/etc/tripleo_get_hash/config.yaml'
 DEFAULT_CONFIG = {
     "tripleo_releases": [
         "master",
+        "zed",
         "wallaby",
         "victoria",
         "ussuri",
