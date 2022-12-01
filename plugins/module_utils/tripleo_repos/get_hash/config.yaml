@@ -16,6 +16,7 @@ tripleo_releases:
   - osp16-2
   - osp17
   - osp17-1
+  - osp18
 
 tripleo_ci_components:
   - baremetal
