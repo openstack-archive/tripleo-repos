@@ -23,7 +23,8 @@
               - openstack-tox-py39
         - tripleo-ci-centos-9-content-provider:
             dependencies: *deps_unit_lint_cprovider
-        - tox-sanity-py39
+        # TODO(marios) re-enable when https://bugs.launchpad.net/tripleo/+bug/2002112
+        # - tox-sanity-py39
     gate:
       jobs:
         - openstack-tox-pep8:

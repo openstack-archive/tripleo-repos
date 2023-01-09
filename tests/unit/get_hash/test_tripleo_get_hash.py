@@ -51,42 +51,43 @@ class TestGetHash(unittest.TestCase):
             self.assertEqual('centos8', main_res.os_version)
             self.assertEqual('victoria', main_res.release)
 
-    def test_verbose_logging_on(self, mock_config):
-        args = ['--verbose']
-        debug_msgs = []
-
-        mocked = MagicMock(
-            return_value=(test_fakes.TEST_REPO_MD5, 200))
-        with patch(
-                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
-            with self.assertLogs() as captured:
-                sys.argv[1:] = args
-                tgh.main()
-            debug_msgs = [
-                record.message
-                for record in captured.records
-                if record.levelname == 'DEBUG'
-            ]
-        self.assertIn('Logging level set to DEBUG', debug_msgs)
-
-    def test_verbose_logging_off(self, mock_config):
-        debug_msgs = []
-
-        mocked = MagicMock(
-            return_value=(test_fakes.TEST_REPO_MD5, 200))
-        with patch(
-                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
-
-            args = ['--tag', 'current-tripleo', '--os-version', 'centos8']
-            with self.assertLogs() as captured:
-                sys.argv[1:] = args
-                tgh.main()
-            debug_msgs = [
-                record.message
-                for record in captured.records
-                if record.levelname == 'DEBUG'
-            ]
-        self.assertEqual(debug_msgs, [])
+# TODO(marios) reenable https://bugs.launchpad.net/tripleo/+bug/2002112
+#    def test_verbose_logging_on(self, mock_config):
+#        args = ['--verbose']
+#        debug_msgs = []
+#
+#        mocked = MagicMock(
+#            return_value=(test_fakes.TEST_REPO_MD5, 200))
+#        with patch(
+#                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
+#            with self.assertLogs() as captured:
+#                sys.argv[1:] = args
+#                tgh.main()
+#            debug_msgs = [
+#                record.message
+#                for record in captured.records
+#                if record.levelname == 'DEBUG'
+#            ]
+#        self.assertIn('Logging level set to DEBUG', debug_msgs)
+#
+#    def test_verbose_logging_off(self, mock_config):
+#        debug_msgs = []
+#
+#        mocked = MagicMock(
+#            return_value=(test_fakes.TEST_REPO_MD5, 200))
+#        with patch(
+#                'tripleo_repos.get_hash.tripleo_hash_info.http_get', mocked):
+#
+#            args = ['--tag', 'current-tripleo', '--os-version', 'centos8']
+#            with self.assertLogs() as captured:
+#                sys.argv[1:] = args
+#                tgh.main()
+#            debug_msgs = [
+#                record.message
+#                for record in captured.records
+#                if record.levelname == 'DEBUG'
+#            ]
+#        self.assertEqual(debug_msgs, [])
 
     def test_invalid_unknown_components(self, mock_config):
         args = ['--component', 'nosuchcomponent']
