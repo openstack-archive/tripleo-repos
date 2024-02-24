@@ -1,1 +1,0 @@
-# tripleo.repos collection

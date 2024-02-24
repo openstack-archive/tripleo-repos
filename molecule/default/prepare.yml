@@ -1,7 +1,0 @@
-- hosts: instance_c7
-  tasks:
-    - name: Update ca-certificates
-      become: true
-      package:
-        name: ca-certificates
-        state: latest
